@@ -602,6 +602,7 @@ function doPost(e) {
     const THEME_KEY = 'nomad_raga_theme';
     const GDRIVE_SYNC_URL_KEY = 'nomad_raga_gdrive_sync_url_v1';
     const GDRIVE_FOLDER_ID_KEY = 'nomad_raga_gdrive_folder_id_v1';
+    const DEFAULT_GDRIVE_SYNC_URL = 'https://script.google.com/macros/s/AKfycbxN0r10l7jx8XyseBzuBkHJ7AqlP1RFN4YlwDm21RrlhC4pOVR7TZnhSoIavNZgVgFs/exec';
     const DEFAULT_GDRIVE_FOLDER_ID = '1tm_iUo8HAdVslNVYde7LJ3sLRicavgq6';
 
     const STARTER_SONG_MD = `---
@@ -671,307 +672,50 @@ Pukaarataa Chalaa Huun Main
       fontSizePx: 15,
       editingSongId: null,
       storageAvailable: true,
-      gdriveUrl: '',
+      gdriveUrl: DEFAULT_GDRIVE_SYNC_URL,
       gdriveFolderId: DEFAULT_GDRIVE_FOLDER_ID,
       isSyncingDrive: false
     };
 
     // ============================================================================
-    // CHORD PARSER & TRANSPOSITION ENGINE
+    // STORAGE, GOOGLE DRIVE SYNC & INITIALIZATION HELPERS
     // ============================================================================
-    const SHARP_SCALE = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-    const FLAT_SCALE  = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
-    const NOTE_TO_INDEX = {
-      'C': 0, 'B#': 0,
-      'C#': 1, 'Db': 1,
-      'D': 2,
-      'D#': 3, 'Eb': 3,
-      'E': 4, 'Fb': 4,
-      'F': 5, 'E#': 5,
-      'F#': 6, 'Gb': 6,
-      'G': 7,
-      'G#': 8, 'Ab': 8,
-      'A': 9,
-      'A#': 10, 'Bb': 10,
-      'B': 11, 'Cb': 11
-    };
-
-    const CHORD_TOKEN_REGEX = /^([A-G](?:#|b)?)(M7|maj7|maj9|maj11|maj13|maj|min7|min9|min|m7b5|m7|m9|m11|m13|m|M|dim7|dim|aug|sus2|sus4|sus|add9|add11|add2|7sus4|7b9|7#9|6\/9|6|7|9|11|13|\+|°|ø)?(?:\/([A-G](?:#|b)?))?$/;
-
-    function normalizeChordToken(rawToken) {
-      const stripped = rawToken.replace(/^[([{|]+|[)\]}|,.;:]+$/g, '');
-      const match = stripped.match(CHORD_TOKEN_REGEX);
-      if (!match) return null;
-
-      let [, root, quality = '', bass] = match;
-      root = root.charAt(0).toUpperCase() + (root.slice(1) || '');
-      if (quality === 'M') {
-        quality = 'm';
-      }
-      if (bass) {
-        bass = bass.charAt(0).toUpperCase() + (bass.slice(1) || '');
-      }
-      return { root, quality, bass };
-    }
-
-    function transposeNote(note, steps, preferFlats = false) {
-      const idx = NOTE_TO_INDEX[note];
-      if (idx === undefined) return note;
-      const shifted = ((idx + steps) % 12 + 12) % 12;
-      return preferFlats ? FLAT_SCALE[shifted] : SHARP_SCALE[shifted];
-    }
-
-    function transposeChordToken(rawToken, steps, preferFlats = false) {
-      const prefixMatch = rawToken.match(/^[([{|]+/);
-      const suffixMatch = rawToken.match(/[)\]}|,.;:]+$/);
-      const prefix = prefixMatch ? prefixMatch[0] : '';
-      const suffix = suffixMatch ? suffixMatch[0] : '';
-
-      const parsed = normalizeChordToken(rawToken);
-      if (!parsed) return rawToken;
-
-      const newRoot = transposeNote(parsed.root, steps, preferFlats);
-      const newBass = parsed.bass ? '/' + transposeNote(parsed.bass, steps, preferFlats) : '';
-      return `${prefix}${newRoot}${parsed.quality}${newBass}${suffix}`;
-    }
-
-    function isChordOnlyLine(line) {
-      const trimmed = line.trim();
-      if (!trimmed) return false;
-      if (/^\[.*\]$/.test(trimmed) || /^\(.*\)$/.test(trimmed)) return false;
-
-      const tokens = trimmed.split(/\s+/);
-      let chordCount = 0;
-
-      for (const tok of tokens) {
-        if (/^[|/\\.\-–—xX0-9]+$/.test(tok)) continue;
-        if (normalizeChordToken(tok)) {
-          chordCount++;
-        } else {
-          return false;
-        }
-      }
-      return chordCount > 0;
-    }
-
-    function transposeChordLinePreservingSpacing(line, steps, preferFlats = false) {
-      const matches = [...line.matchAll(/\S+/g)];
-      if (matches.length === 0) return line;
-
-      const items = matches.map(m => ({
-        original: m[0],
-        origStart: m.index,
-        transposed: normalizeChordToken(m[0])
-          ? transposeChordToken(m[0], steps, preferFlats)
-          : m[0]
-      }));
-
-      let result = '';
-      let cursor = 0;
-
-      for (let i = 0; i < items.length; i++) {
-        const item = items[i];
-        const targetStart = i === 0 ? item.origStart : Math.max(item.origStart, cursor + 1);
-        const spacesNeeded = Math.max(0, targetStart - cursor);
-        result += ' '.repeat(spacesNeeded) + item.transposed;
-        cursor = targetStart + item.transposed.length;
-      }
-
-      return result;
-    }
-
-    // ============================================================================
-    // MARKDOWN & FRONTMATTER PARSER
-    // ============================================================================
-    function extractYouTubeId(input) {
-      if (!input) return '';
+    function extractFolderId(input) {
+      if (!input) return DEFAULT_GDRIVE_FOLDER_ID;
       const trimmed = input.trim();
-      if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) return trimmed;
-      const patterns = [
-        /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/,
-        /[?&]v=([a-zA-Z0-9_-]{11})/
-      ];
-      for (const p of patterns) {
-        const m = trimmed.match(p);
-        if (m) return m[1];
-      }
-      return '';
+      const match = trimmed.match(/folders\/([a-zA-Z0-9_-]+)/) || trimmed.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+      if (match) return match[1];
+      if (/^[a-zA-Z0-9_-]{15,}$/.test(trimmed)) return trimmed;
+      return DEFAULT_GDRIVE_FOLDER_ID;
     }
 
-    function parseMarkdownSong(rawMd, fallbackFilename = 'Untitled Song.md') {
-      let text = rawMd.replace(/\r\n/g, '\n');
-      let title = '';
-      let bpm = 96;
-      let timeSignature = '4/4';
-      let key = '';
-      let swing = false;
-      let youtubeId = '';
-      let tags = new Set();
+    function extractDriveConfigFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      const urlFromQuery = params.get('driveSync');
+      const folderFromQuery = params.get('folderId');
 
-      // 1. Check optional YAML Frontmatter (--- ... ---)
-      const fmMatch = text.match(/^---\n([\s\S]*?)\n---\n?/);
-      if (fmMatch) {
-        const fmBlock = fmMatch[1];
-        text = text.slice(fmMatch[0].length);
-
-        const titleM = fmBlock.match(/^title:\s*(.+)$/mi);
-        if (titleM) title = titleM[1].replace(/^["']|["']$/g, '').trim();
-
-        const bpmM = fmBlock.match(/^bpm:\s*(\d+)/mi);
-        if (bpmM) bpm = parseInt(bpmM[1], 10) || 96;
-
-        const tsM = fmBlock.match(/^(?:time_signature|timeSignature|time|meter):\s*["']?(\d+\/\d+)["']?/mi);
-        if (tsM) timeSignature = tsM[1].trim();
-
-        const keyM = fmBlock.match(/^key:\s*["']?([A-Ga-g][#b]?m?)["']?/mi);
-        if (keyM) key = keyM[1].trim();
-
-        const swingM = fmBlock.match(/^swing:\s*["']?(yes|true|1|no|false|0)["']?/mi);
-        if (swingM) swing = /^(yes|true|1)$/i.test(swingM[1].trim());
-
-        const ytM = fmBlock.match(/^(?:youtube_id|youtube|yt):\s*["']?(.+?)["']?$/mi);
-        if (ytM) youtubeId = extractYouTubeId(ytM[1]);
-
-        const tagsM = fmBlock.match(/^tags:\s*(.+)$/mi);
-        if (tagsM) {
-          const rawTags = tagsM[1].replace(/[\[\]"']/g, '').split(/[,\s]+/);
-          rawTags.forEach(t => {
-            const clean = t.trim();
-            if (clean) tags.add(clean.startsWith('#') ? clean : `#${clean}`);
-          });
-        }
+      if (urlFromQuery && urlFromQuery.startsWith('https://script.google.com/')) {
+        try { localStorage.setItem(GDRIVE_SYNC_URL_KEY, urlFromQuery.trim()); } catch (e) {}
+      }
+      if (folderFromQuery) {
+        const cleanId = extractFolderId(folderFromQuery);
+        try { localStorage.setItem(GDRIVE_FOLDER_ID_KEY, cleanId); } catch (e) {}
       }
 
-      // 2. Parse Nomad Raga Inline Header Lines before ```chords
-      const preFenceSplit = text.split(/```(?:chords)?/i);
-      if (preFenceSplit.length > 1) {
-        const headerSection = preFenceSplit[0];
-        const headerLines = headerSection.split('\n');
-        const remainingHeaderLines = [];
+      let savedUrl = DEFAULT_GDRIVE_SYNC_URL;
+      let savedFolder = DEFAULT_GDRIVE_FOLDER_ID;
+      try {
+        const storedUrl = localStorage.getItem(GDRIVE_SYNC_URL_KEY);
+        if (storedUrl !== null) savedUrl = storedUrl;
+        savedFolder = localStorage.getItem(GDRIVE_FOLDER_ID_KEY) || DEFAULT_GDRIVE_FOLDER_ID;
+      } catch (e) {}
 
-        for (const hLine of headerLines) {
-          const trimmed = hLine.trim();
-          if (!trimmed) continue;
-
-          if (/^(?:#[A-Za-z0-9_-]+\s*)+$/.test(trimmed)) {
-            const found = trimmed.match(/#[A-Za-z0-9_-]+/g) || [];
-            found.forEach(t => tags.add(t));
-            continue;
-          }
-
-          const bpmInline = trimmed.match(/^BPM:\s*(\d+)/i);
-          if (bpmInline) {
-            bpm = parseInt(bpmInline[1], 10) || bpm;
-            continue;
-          }
-
-          const tsInline = trimmed.match(/^Time\s*Signature:\s*(\d+\/\d+)/i);
-          if (tsInline) {
-            timeSignature = tsInline[1].trim();
-            continue;
-          }
-
-          const keyInline = trimmed.match(/^Key:\s*([A-Ga-g][#b]?(?:maj|min|m)?)/i);
-          if (keyInline) {
-            const kRaw = keyInline[1].trim();
-            key = kRaw.charAt(0).toUpperCase() + kRaw.slice(1);
-            continue;
-          }
-
-          const swingInline = trimmed.match(/^Swing:\s*(Yes|No|True|False)/i);
-          if (swingInline) {
-            swing = /^(yes|true)$/i.test(swingInline[1].trim());
-            continue;
-          }
-
-          const ytInline = trimmed.match(/^YouTube(?:\s*Link|\s*ID)?:\s*(.*)$/i);
-          if (ytInline) {
-            const extracted = extractYouTubeId(ytInline[1]);
-            if (extracted) youtubeId = extracted;
-            continue;
-          }
-
-          remainingHeaderLines.push(hLine);
-        }
-
-        text = [...remainingHeaderLines, '```chords', ...preFenceSplit.slice(1)].join('\n');
-      }
-
-      // 3. Extract hashtags anywhere in text
-      const inlineHashMatches = text.match(/(?:^|\s)(#[A-Za-z0-9_-]+)/g);
-      if (inlineHashMatches) {
-        inlineHashMatches.forEach(m => tags.add(m.trim()));
-      }
-
-      // 4. Fallback Title extraction
-      if (!title) {
-        const h1Match = text.match(/^#\s+(.+)$/m);
-        if (h1Match) {
-          title = h1Match[1].trim();
-        } else if (fallbackFilename && fallbackFilename !== 'Pasted Song.md') {
-          title = fallbackFilename.replace(/\.(md|markdown|txt)$/i, '').replace(/[_-]+/g, ' ').trim();
-        } else {
-          const lines = text.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('```') && !l.startsWith('#') && !/^\[.*\]$/.test(l) && !isChordOnlyLine(l));
-          title = lines[0] ? lines[0].slice(0, 48) : 'Untitled Raga';
-        }
-      }
-
-      // 5. Extract content inside ```chords fences (supports both closed and unclosed fences)
-      let bodyContent = text.trim();
-      const closedFenceMatch = bodyContent.match(/```(?:chords)?\n([\s\S]*?)```/i);
-      if (closedFenceMatch) {
-        bodyContent = closedFenceMatch[1].replace(/^\n+|\n+$/g, '');
-      } else {
-        const unclosedFenceMatch = bodyContent.match(/```(?:chords)?\n([\s\S]*)$/i);
-        if (unclosedFenceMatch) {
-          bodyContent = unclosedFenceMatch[1].replace(/^\n+|\n+$/g, '');
-        }
-      }
-
-      // 6. Auto-detect Key from first chord if missing
-      if (!key) {
-        const lines = bodyContent.split('\n');
-        for (const l of lines) {
-          if (isChordOnlyLine(l)) {
-            const firstTok = l.trim().split(/\s+/)[0];
-            const parsed = normalizeChordToken(firstTok);
-            if (parsed) {
-              key = parsed.root + (parsed.quality.startsWith('m') && !parsed.quality.startsWith('maj') ? 'm' : '');
-              break;
-            }
-          }
-        }
-        if (!key) key = 'Am';
-      } else {
-        const parsedKey = normalizeChordToken(key);
-        if (parsedKey) {
-          key = parsedKey.root + (parsedKey.quality.startsWith('m') && !parsedKey.quality.startsWith('maj') ? 'm' : '');
-        }
-      }
-
-      if (tags.size === 0) {
-        tags.add('#NomadRaga');
-        tags.add('#SongChords');
-      }
-
-      return {
-        title,
-        bpm,
-        timeSignature,
-        key,
-        swing,
-        youtubeId,
-        tags: Array.from(tags),
-        rawBody: bodyContent
-      };
+      return { url: savedUrl, folderId: savedFolder };
     }
 
-    // ============================================================================
-    // STORAGE & INITIALIZATION HELPERS
-    // ============================================================================
     function checkStorageAvailability() {
       try {
-        const testKey = '__nomad_raga_storage_test__';
+        const testKey = '__nomad_raga_test__';
         localStorage.setItem(testKey, '1');
         localStorage.removeItem(testKey);
         state.storageAvailable = true;
@@ -982,123 +726,54 @@ Pukaarataa Chalaa Huun Main
       }
     }
 
-    function loadLibraryFromLocal() {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            state.songs = parsed.map(s => ({
-              timeSignature: '4/4',
-              swing: false,
-              ...s
-            }));
-            const savedActiveId = localStorage.getItem(ACTIVE_SONG_KEY);
-            state.activeSongId = state.songs.some(s => s.id === savedActiveId)
-              ? savedActiveId
-              : state.songs[0].id;
-            return;
-          }
-        }
-      } catch (e) {
-        console.warn('Could not read from localStorage:', e);
-      }
-      initStarterSong();
+    function getActiveSong() {
+      return state.songs.find(s => s.id === state.activeSongId) || state.songs[0] || null;
     }
 
-    function initStarterSong() {
-      const starter = parseMarkdownSong(STARTER_SONG_MD, 'Bekaraar x Pukaarataa (Mashup).md');
-      state.songs = [{
-        id: 'starter-bekaraar-pukaarataa',
-        ...starter,
-        updatedAt: Date.now()
-      }];
-      state.activeSongId = state.songs[0].id;
-      saveLibrary(false);
-    }
-
-    function saveLibrary(syncToDrive = true) {
+    function saveLibraryToLocal() {
+      if (!state.storageAvailable) return;
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state.songs));
         if (state.activeSongId) {
           localStorage.setItem(ACTIVE_SONG_KEY, state.activeSongId);
         }
       } catch (e) {
-        console.warn('Could not save songbook to localStorage:', e);
-        showToast('Browser blocked local storage. Use Drive Sync or Backup!', 'error');
-      }
-      if (syncToDrive && state.gdriveUrl) {
-        scheduleDrivePush();
+        console.warn('Unable to save library to localStorage:', e);
       }
     }
 
-    async function syncFromRepoSongsJson() {
-      if (window.location.protocol === 'file:' || window.location.href.startsWith('about:')) return;
+    function loadLibraryFromLocal() {
+      if (!state.storageAvailable) return false;
       try {
-        const res = await fetch(`./songs.json?t=${Date.now()}`, { cache: 'no-store' });
-        if (!res.ok) return;
-        const data = await res.json();
-        const remoteSongs = Array.isArray(data) ? data : (Array.isArray(data.songs) ? data.songs : null);
-        if (!remoteSongs || remoteSongs.length === 0) return;
-
-        const mergedMap = new Map();
-        remoteSongs.forEach(s => {
-          if (s && s.id && s.title && s.rawBody) {
-            mergedMap.set(s.id, { timeSignature: '4/4', swing: false, ...s });
-          }
-        });
-        state.songs.forEach(localSong => {
-          if (localSong.id === 'starter-bekaraar-pukaarataa' && mergedMap.size > 0 && !mergedMap.has(localSong.id)) {
-            return;
-          }
-          const existing = mergedMap.get(localSong.id);
-          if (!existing || (localSong.updatedAt || 0) > (existing.updatedAt || 0)) {
-            mergedMap.set(localSong.id, localSong);
-          }
-        });
-
-        if (mergedMap.size > 0) {
-          state.songs = Array.from(mergedMap.values());
-          if (!state.songs.some(s => s.id === state.activeSongId)) {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return false;
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          state.songs = parsed;
+          const savedActive = localStorage.getItem(ACTIVE_SONG_KEY);
+          if (savedActive && state.songs.some(s => s.id === savedActive)) {
+            state.activeSongId = savedActive;
+          } else {
             state.activeSongId = state.songs[0].id;
           }
-          saveLibrary(false);
-          const active = getActiveSong();
-          if (active) {
-            metronome.setBpm(active.bpm || 96, false);
-            metronome.setTimeSignature(active.timeSignature || '4/4', false);
-            metronome.setSwing(Boolean(active.swing), false);
-          }
-          renderSidebar();
-          renderActiveSong();
+          return true;
         }
       } catch (e) {
-        // Optional songs.json not present in repo
+        console.warn('Unable to read localStorage:', e);
       }
+      return false;
     }
 
-    function getActiveSong() {
-      return state.songs.find(s => s.id === state.activeSongId) || state.songs[0] || null;
-    }
-
-    function applyTheme(theme) {
-      const htmlEl = document.documentElement;
-      if (theme === 'light') {
-        htmlEl.classList.remove('dark');
-      } else {
-        htmlEl.classList.add('dark');
-      }
-      try { localStorage.setItem(THEME_KEY, theme); } catch (e) {}
-    }
-
-    function showToast(message, type = 'success') {
+    function showToast(message, type = 'info') {
       const container = document.getElementById('toast-container');
       if (!container) return;
       const toast = document.createElement('div');
-      const bgClass = type === 'error'
-        ? 'bg-red-600 text-white border-red-500'
-        : 'bg-espresso-900 dark:bg-parchment-100 text-parchment-50 dark:text-espresso-950 border-amber-500/40';
-      toast.className = `${bgClass} border px-4 py-2.5 rounded-xl shadow-xl text-xs sm:text-sm font-semibold transition-all duration-200 pointer-events-auto max-w-sm`;
+      const colorClasses = type === 'error'
+        ? 'bg-red-600 text-white border-red-400'
+        : type === 'success'
+        ? 'bg-emerald-600 text-white border-emerald-400'
+        : 'bg-espresso-850 text-parchment-100 border-amber-500/40';
+      toast.className = `pointer-events-auto px-4 py-2.5 rounded-xl border text-xs sm:text-sm font-medium shadow-lg transition-all duration-200 ${colorClasses}`;
       toast.textContent = message;
       container.appendChild(toast);
       setTimeout(() => {
@@ -1109,261 +784,195 @@ Pukaarataa Chalaa Huun Main
     }
 
     // ============================================================================
-    // GOOGLE DRIVE FOLDER SYNC ENGINE (.MD FILES IN SHARED DRIVE FOLDER)
+    // MARKDOWN & CHORD PARSER + TRANSPOSITION ENGINE
     // ============================================================================
-    let drivePushTimer = null;
+    const SHARP_SCALE = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const FLAT_TO_SHARP = {
+      'Db': 'C#', 'Eb': 'D#', 'Fb': 'E', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#', 'Cb': 'B'
+    };
 
-    function extractDriveFolderId(input) {
-      if (!input) return DEFAULT_GDRIVE_FOLDER_ID;
+    function normalizeChordToken(token) {
+      return token.replace(/^([A-G][#b]?)M(?=$|[^a-zA-Z0-9]|7|9|11|13)/, (match, root, offset, full) => {
+        if (/^[A-G][#b]?M(7|9|11|13|aj)/.test(full)) return full;
+        return root + 'm';
+      });
+    }
+
+    const CHORD_REGEX = /^[A-G](#|b)?(m|min|maj|dim|aug|sus|add|M)?[0-9]{0,2}(\/[A-G](#|b)?)?(\((#|b)?[0-9]+\))?$/;
+
+    function isChordToken(tok) {
+      if (!tok) return false;
+      if (tok === '|' || tok === '/' || tok === '%' || tok === '-' || tok === 'x2' || tok === 'x4') return true;
+      return CHORD_REGEX.test(tok);
+    }
+
+    function isChordOnlyLine(line) {
+      const trimmed = line.trim();
+      if (!trimmed) return false;
+      if (/^\[.*\]$/.test(trimmed) || /^\(.*\)$/.test(trimmed)) return false;
+      const tokens = trimmed.split(/\s+/);
+      let chordCount = 0;
+      for (const tok of tokens) {
+        if (!isChordToken(tok)) return false;
+        if (CHORD_REGEX.test(tok)) chordCount++;
+      }
+      return chordCount > 0;
+    }
+
+    function transposeSingleChord(chordToken, steps) {
+      if (!CHORD_REGEX.test(chordToken)) return chordToken;
+      const normalized = normalizeChordToken(chordToken);
+      if (steps === 0) return normalized;
+
+      return normalized.replace(/([A-G])(#|b)?/g, (match, note, accidental) => {
+        let fullNote = note + (accidental || '');
+        if (FLAT_TO_SHARP[fullNote]) fullNote = FLAT_TO_SHARP[fullNote];
+        const idx = SHARP_SCALE.indexOf(fullNote);
+        if (idx === -1) return match;
+        const newIdx = ((idx + steps) % 12 + 12) % 12;
+        return SHARP_SCALE[newIdx];
+      });
+    }
+
+    function transposeChordLinePreservingSpacing(line, steps) {
+      const tokenRegex = /\S+/g;
+      let result = '';
+      let lastIndex = 0;
+      let match;
+
+      while ((match = tokenRegex.exec(line)) !== null) {
+        const originalToken = match[0];
+        const start = match.index;
+        const transposed = transposeSingleChord(originalToken, steps);
+        const gap = start - lastIndex;
+
+        if (result.length === 0) {
+          result += ' '.repeat(gap) + transposed;
+        } else {
+          const adjustedGap = Math.max(1, gap);
+          result += ' '.repeat(adjustedGap) + transposed;
+        }
+        lastIndex = start + originalToken.length;
+      }
+      return result;
+    }
+
+    function extractYouTubeId(input) {
+      if (!input) return '';
       const trimmed = input.trim();
-      const folderMatch = trimmed.match(/\/folders\/([a-zA-Z0-9_-]+)/);
-      if (folderMatch) return folderMatch[1];
-      const idParamMatch = trimmed.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-      if (idParamMatch) return idParamMatch[1];
-      if (/^[a-zA-Z0-9_-]{15,}$/.test(trimmed)) return trimmed;
-      return DEFAULT_GDRIVE_FOLDER_ID;
+      if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) return trimmed;
+      const patterns = [
+        /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/,
+        /[?&]v=([a-zA-Z0-9_-]{11})/
+      ];
+      for (const re of patterns) {
+        const m = trimmed.match(re);
+        if (m) return m[1];
+      }
+      return '';
     }
 
-    function songToMarkdownFile(song) {
-      const tagsLine = (song.tags && song.tags.length)
-        ? song.tags.map(t => (t.startsWith('#') ? t : `#${t}`)).join(' ')
-        : '#NomadRaga #SongChords';
+    function parseMarkdownSong(rawMd, fallbackFilename = 'Untitled Song') {
+      let text = (rawMd || '').replace(/\r\n/g, '\n');
+      let title = fallbackFilename.replace(/\.md$/i, '').trim() || 'Untitled Song';
+      let bpm = 96;
+      let timeSignature = '4/4';
+      let key = 'C';
+      let swing = false;
+      let youtubeId = '';
+      const tagSet = new Set();
+
+      // 1. Optional YAML Frontmatter (--- ... ---)
+      const yamlMatch = text.match(/^---\s*\n([\s\S]*?)\n---\s*\n?/);
+      if (yamlMatch) {
+        const fm = yamlMatch[1];
+        text = text.slice(yamlMatch[0].length);
+        fm.split('\n').forEach(line => {
+          const kv = line.match(/^([a-zA-Z0-9_-]+)\s*:\s*(.+)$/);
+          if (!kv) return;
+          const k = kv[1].toLowerCase().trim();
+          const v = kv[2].trim().replace(/^["']|["']$/g, '');
+          if (k === 'title' && v) title = v;
+          if (k === 'bpm' && !isNaN(parseInt(v, 10))) bpm = parseInt(v, 10);
+          if ((k === 'time_signature' || k === 'timesignature' || k === 'time') && v) timeSignature = v;
+          if (k === 'key' && v) key = normalizeChordToken(v);
+          if (k === 'swing') swing = /^(yes|true|1)$/i.test(v);
+          if ((k === 'youtube_id' || k === 'youtube' || k === 'youtubelink') && v) youtubeId = extractYouTubeId(v);
+          if (k === 'tags') {
+            const found = v.match(/#[a-zA-Z0-9_-]+/g) || v.replace(/[\[\]"']/g, '').split(',').map(t => t.trim()).filter(Boolean);
+            found.forEach(t => tagSet.add(t.startsWith('#') ? t : '#' + t));
+          }
+        });
+      }
+
+      // 2. Top-of-file metadata headers (sample .md style before ```chords)
+      const lines = text.split('\n');
+      const bodyLines = [];
+      let inCodeFence = false;
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const trimmed = line.trim();
+
+        if (/^```/.test(trimmed)) {
+          inCodeFence = !inCodeFence;
+          continue;
+        }
+
+        if (!inCodeFence) {
+          if (/^#\s+(.+)$/.test(trimmed) && title === fallbackFilename.replace(/\.md$/i, '').trim()) {
+            title = trimmed.replace(/^#\s+/, '').trim();
+            continue;
+          }
+          if (/^(#[a-zA-Z0-9_-]+\s*)+$/.test(trimmed)) {
+            trimmed.split(/\s+/).forEach(t => tagSet.add(t));
+            continue;
+          }
+          const bpmMatch = trimmed.match(/^BPM\s*:\s*(\d+)/i);
+          if (bpmMatch) { bpm = parseInt(bpmMatch[1], 10); continue; }
+
+          const tsMatch = trimmed.match(/^Time\s*Signature\s*:\s*([0-9]+\/[0-9]+)/i);
+          if (tsMatch) { timeSignature = tsMatch[1]; continue; }
+
+          const keyMatch = trimmed.match(/^Key\s*:\s*([A-G][#b]?m?)/i);
+          if (keyMatch) { key = normalizeChordToken(keyMatch[1]); continue; }
+
+          const swingMatch = trimmed.match(/^Swing\s*:\s*(Yes|No|True|False)/i);
+          if (swingMatch) { swing = /^(yes|true)$/i.test(swingMatch[1]); continue; }
+
+          const ytMatch = trimmed.match(/^YouTube(?:\s*Link|\s*ID)?\s*:\s*(.*)$/i);
+          if (ytMatch) {
+            if (ytMatch[1].trim()) youtubeId = extractYouTubeId(ytMatch[1].trim());
+            continue;
+          }
+        }
+        bodyLines.push(line);
+      }
+
+      if (tagSet.size === 0) {
+        tagSet.add('#NomadRaga');
+      }
+
+      return {
+        id: 'song_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+        title,
+        bpm,
+        timeSignature,
+        key,
+        swing,
+        youtubeId,
+        tags: Array.from(tagSet),
+        content: bodyLines.join('\n').replace(/^\n+/, ''),
+        rawMarkdown: rawMd
+      };
+    }
+
+    function buildMarkdownFromSong(song) {
+      const tagsLine = (song.tags && song.tags.length ? song.tags : ['#NomadRaga']).join(' ');
       const ytLine = song.youtubeId ? `https://youtu.be/${song.youtubeId}` : '';
-      const body = (song.rawBody || '').trim();
-      const hasFence = /^```/m.test(body);
-      const formattedBody = hasFence ? body : `\`\`\`chords\n${body}\n\`\`\``;
-
-      return `${tagsLine}\n\nBPM: ${song.bpm || 96}\nTime Signature: ${song.timeSignature || '4/4'}\nKey: ${song.key || 'Am'}\nSwing: ${song.swing ? 'Yes' : 'No'}\nYouTube Link: ${ytLine}\n\n${formattedBody}\n`;
+      return `${tagsLine}\n\nBPM: ${song.bpm || 96}\nTime Signature: ${song.timeSignature || '4/4'}\nKey: ${song.key || 'C'}\nSwing: ${song.swing ? 'Yes' : 'No'}\nYouTube Link: ${ytLine}\n\n\`\`\`chords\n${song.content || ''}\n\`\`\``;
     }
 
-    function getDriveSyncConfig() {
-      const params = new URLSearchParams(window.location.search);
-      const urlFromQuery = params.get('driveSync');
-      const folderFromQuery = params.get('folderId');
-
-      if (folderFromQuery) {
-        const cleanFolder = extractDriveFolderId(folderFromQuery);
-        try { localStorage.setItem(GDRIVE_FOLDER_ID_KEY, cleanFolder); } catch (e) {}
-      }
-
-      if (urlFromQuery && urlFromQuery.startsWith('https://script.google.com/')) {
-        try { localStorage.setItem(GDRIVE_SYNC_URL_KEY, urlFromQuery.trim()); } catch (e) {}
-      }
-
-      let savedUrl = '';
-      let savedFolder = DEFAULT_GDRIVE_FOLDER_ID;
-      try {
-        savedUrl = localStorage.getItem(GDRIVE_SYNC_URL_KEY) || '';
-        savedFolder = localStorage.getItem(GDRIVE_FOLDER_ID_KEY) || DEFAULT_GDRIVE_FOLDER_ID;
-      } catch (e) {}
-
-      return { url: savedUrl, folderId: savedFolder };
-    }
-
-    function updateDriveSyncUI(statusMessage = null) {
-      const dot = document.getElementById('gdrive-status-dot');
-      const statusLabel = document.getElementById('gdrive-sync-status-label');
-      const pullBtn = document.getElementById('gdrive-pull-now-btn');
-      const pushBtn = document.getElementById('gdrive-push-now-btn');
-      const discBtn = document.getElementById('gdrive-disconnect-btn');
-      const shareBox = document.getElementById('gdrive-share-box');
-      const magicLinkInput = document.getElementById('gdrive-magic-link');
-
-      if (!dot) return;
-
-      if (state.gdriveUrl) {
-        dot.className = state.isSyncingDrive
-          ? 'w-2 h-2 rounded-full bg-amber-400 animate-ping'
-          : 'w-2 h-2 rounded-full bg-emerald-500';
-        if (statusLabel) {
-          statusLabel.textContent = statusMessage || (state.isSyncingDrive ? 'Syncing .md files with Drive folder...' : `Connected (Folder: ${state.gdriveFolderId.slice(0, 8)}...)`);
-        }
-        if (pullBtn) pullBtn.classList.remove('hidden');
-        if (pushBtn) pushBtn.classList.remove('hidden');
-        if (discBtn) discBtn.classList.remove('hidden');
-        if (shareBox && magicLinkInput) {
-          const baseUrl = window.location.href.split('?')[0].split('#')[0];
-          magicLinkInput.value = `${baseUrl}?driveSync=${encodeURIComponent(state.gdriveUrl)}&folderId=${encodeURIComponent(state.gdriveFolderId)}`;
-          shareBox.classList.remove('hidden');
-        }
-      } else {
-        dot.className = 'w-2 h-2 rounded-full bg-stone-400';
-        if (statusLabel) statusLabel.textContent = 'Not connected yet';
-        if (pullBtn) pullBtn.classList.add('hidden');
-        if (pushBtn) pushBtn.classList.add('hidden');
-        if (discBtn) discBtn.classList.add('hidden');
-        if (shareBox) shareBox.classList.add('hidden');
-      }
-    }
-
-    function scheduleDrivePush(specificSong = null) {
-      if (!state.gdriveUrl) return;
-      clearTimeout(drivePushTimer);
-      drivePushTimer = setTimeout(() => {
-        if (specificSong) {
-          upsertSongFileInDrive(specificSong, true);
-        } else {
-          pushAllSongsToGoogleDrive(true);
-        }
-      }, 800);
-    }
-
-    async function upsertSongFileInDrive(song, silent = false) {
-      if (!state.gdriveUrl || !song) return;
-      state.isSyncingDrive = true;
-      updateDriveSyncUI(`Saving "${song.title}.md"...`);
-      try {
-        const safeTitle = (song.title || 'Untitled').replace(/[\/\\:*?"<>|]/g, '-').trim();
-        await fetch(state.gdriveUrl, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({
-            action: 'upsert',
-            folderId: state.gdriveFolderId,
-            fileName: `${safeTitle}.md`,
-            rawMarkdown: songToMarkdownFile(song)
-          })
-        });
-        state.isSyncingDrive = false;
-        updateDriveSyncUI(`Saved .md to Drive (${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`);
-        if (!silent) showToast(`Saved "${safeTitle}.md" to Google Drive!`);
-      } catch (err) {
-        state.isSyncingDrive = false;
-        updateDriveSyncUI('Google Drive upload failed');
-        if (!silent) showToast('Could not upload .md to Google Drive.', 'error');
-      }
-    }
-
-    async function deleteSongFileInDrive(song) {
-      if (!state.gdriveUrl || !song) return;
-      try {
-        const safeTitle = (song.title || 'Untitled').replace(/[\/\\:*?"<>|]/g, '-').trim();
-        await fetch(state.gdriveUrl, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({
-            action: 'delete',
-            folderId: state.gdriveFolderId,
-            fileName: `${safeTitle}.md`
-          })
-        });
-      } catch (e) {}
-    }
-
-    async function pushAllSongsToGoogleDrive(silent = false) {
-      if (!state.gdriveUrl) return;
-      state.isSyncingDrive = true;
-      updateDriveSyncUI(`Pushing ${state.songs.length} .md file(s) to Drive...`);
-      try {
-        for (const song of state.songs) {
-          if (song.id === 'starter-bekaraar-pukaarataa' && state.songs.length > 1) continue;
-          const safeTitle = (song.title || 'Untitled').replace(/[\/\\:*?"<>|]/g, '-').trim();
-          await fetch(state.gdriveUrl, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({
-              action: 'upsert',
-              folderId: state.gdriveFolderId,
-              fileName: `${safeTitle}.md`,
-              rawMarkdown: songToMarkdownFile(song)
-            })
-          });
-        }
-        state.isSyncingDrive = false;
-        updateDriveSyncUI(`Synced to Drive (${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`);
-        if (!silent) showToast('Uploaded all .md files to your Google Drive folder!');
-      } catch (err) {
-        state.isSyncingDrive = false;
-        updateDriveSyncUI('Google Drive sync failed');
-        if (!silent) showToast('Could not reach Google Drive script URL.', 'error');
-      }
-    }
-
-    async function pullSongsFromGoogleDrive(silent = false) {
-      if (!state.gdriveUrl) return false;
-      state.isSyncingDrive = true;
-      updateDriveSyncUI('Reading .md files from Drive folder...');
-      try {
-        const sep = state.gdriveUrl.includes('?') ? '&' : '?';
-        const res = await fetch(`${state.gdriveUrl}${sep}folderId=${encodeURIComponent(state.gdriveFolderId)}&t=${Date.now()}`, {
-          method: 'GET',
-          redirect: 'follow',
-          cache: 'no-store'
-        });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const data = await res.json();
-        const driveFiles = Array.isArray(data) ? data : (Array.isArray(data.songs) ? data.songs : null);
-
-        if (!driveFiles) {
-          throw new Error('Unexpected response format from Apps Script');
-        }
-
-        if (driveFiles.length > 0) {
-          const mergedMap = new Map();
-
-          driveFiles.forEach(item => {
-            if (!item || !item.rawMarkdown) return;
-            const parsed = parseMarkdownSong(item.rawMarkdown, item.fileName || 'Untitled.md');
-            const songId = item.driveFileId ? `gdrive-${item.driveFileId}` : `song-${parsed.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
-            mergedMap.set(parsed.title.toLowerCase(), {
-              id: songId,
-              ...parsed,
-              updatedAt: item.updatedAt || Date.now()
-            });
-          });
-
-          state.songs.forEach(localSong => {
-            if (localSong.id === 'starter-bekaraar-pukaarataa' && mergedMap.size > 0) return;
-            const key = localSong.title.toLowerCase();
-            const existing = mergedMap.get(key);
-            if (!existing || (localSong.updatedAt || 0) > (existing.updatedAt || 0)) {
-              mergedMap.set(key, localSong);
-            }
-          });
-
-          const prevCount = state.songs.length;
-          state.songs = Array.from(mergedMap.values());
-          if (!state.songs.some(s => s.id === state.activeSongId)) {
-            state.activeSongId = state.songs[0].id;
-          }
-          saveLibrary(false);
-
-          const active = getActiveSong();
-          if (active) {
-            metronome.setBpm(active.bpm || 96, false);
-            metronome.setTimeSignature(active.timeSignature || '4/4', false);
-            metronome.setSwing(Boolean(active.swing), false);
-          }
-          renderSidebar();
-          renderActiveSong();
-
-          state.isSyncingDrive = false;
-          updateDriveSyncUI(`Synced ${state.songs.length} .md song(s) from Drive`);
-          if (!silent || state.songs.length !== prevCount) {
-            showToast(`Loaded ${driveFiles.length} .md file(s) from Google Drive!`);
-          }
-          return true;
-        } else {
-          state.isSyncingDrive = false;
-          updateDriveSyncUI('Drive folder is currently empty (0 .md files)');
-          if (!silent) showToast('Connected! Your Google Drive folder has 0 .md files yet—upload .md files or click Push to Drive.');
-          return true;
-        }
-      } catch (err) {
-        console.warn('Google Drive sync read error:', err);
-        state.isSyncingDrive = false;
-        updateDriveSyncUI('Sync error — check Web App URL & "Anyone" access');
-        if (!silent) showToast('Sync failed. Make sure you deployed the Apps Script with "Who has access: Anyone".', 'error');
-      }
-      return false;
-    }
-
-    // ============================================================================
-    // RENDERING: CHORD SHEET, SIDEBAR & METADATA
-    // ============================================================================
     function escapeHtml(str) {
       return str
         .replace(/&/g, '&amp;')
@@ -1371,136 +980,333 @@ Pukaarataa Chalaa Huun Main
         .replace(/>/g, '&gt;');
     }
 
-    function highlightChordsInLine(shiftedLine) {
-      return shiftedLine.replace(/\S+/g, token => {
-        if (normalizeChordToken(token)) {
-          return `<span class="text-amberchord-light dark:text-amberchord-dark font-bold">${escapeHtml(token)}</span>`;
-        }
-        return `<span class="text-stone-500 dark:text-stone-400">${escapeHtml(token)}</span>`;
-      });
-    }
+    function renderChordSheet() {
+      const song = getActiveSong();
+      const output = document.getElementById('chord-sheet-output');
+      if (!song || !output) return;
 
-    function renderChordSheet(song) {
-      const container = document.getElementById('chord-sheet-output');
-      if (!song) {
-        container.innerHTML = `<p class="text-stone-400 italic">No song selected. Import a .md file to begin.</p>`;
-        return;
+      const lines = (song.content || '').split('\n');
+      const htmlParts = [];
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) {
+          htmlParts.push('<div class="h-4"></div>');
+          continue;
+        }
+        if (/^\[.*\]$/.test(trimmed)) {
+          htmlParts.push(`<div class="mt-4 mb-1 font-bold text-xs sm:text-sm uppercase tracking-wider text-amber-700 dark:text-amber-400/90">${escapeHtml(trimmed)}</div>`);
+          continue;
+        }
+        if (/^\(.*\)$/.test(trimmed)) {
+          htmlParts.push(`<div class="my-2 italic text-xs sm:text-sm text-stone-500 dark:text-stone-400">${escapeHtml(trimmed)}</div>`);
+          continue;
+        }
+        if (isChordOnlyLine(line)) {
+          const shifted = transposeChordLinePreservingSpacing(line, state.transposeSteps);
+          htmlParts.push(`<div class="chord-line font-bold text-amberchord-light dark:text-amberchord-dark select-all">${escapeHtml(shifted)}</div>`);
+        } else {
+          htmlParts.push(`<div class="chord-line text-stone-800 dark:text-parchment-100">${escapeHtml(line)}</div>`);
+        }
       }
 
-      const preferFlats = (song.key || '').includes('b') && state.transposeSteps === 0
-        ? true
-        : [1, 3, 5, 8, 10].includes(((NOTE_TO_INDEX[song.key?.replace(/m.*/, '')] || 0) + state.transposeSteps + 120) % 12);
-
-      const lines = song.rawBody.split('\n');
-      const htmlLines = lines.map(rawLine => {
-        const trimmed = rawLine.trim();
-
-        if (!trimmed) {
-          return `<div class="h-4"></div>`;
-        }
-
-        if (/^\[.*\]$/.test(trimmed)) {
-          return `<div class="mt-4 mb-1 inline-block px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-800 dark:text-amber-300 font-bold text-xs sm:text-sm tracking-wide uppercase">${escapeHtml(trimmed)}</div>`;
-        }
-
-        if (/^\(.*\)$/.test(trimmed)) {
-          return `<div class="my-2 text-stone-500 dark:text-stone-400 italic text-xs sm:text-sm">${escapeHtml(trimmed)}</div>`;
-        }
-
-        if (isChordOnlyLine(rawLine)) {
-          const transposedLine = transposeChordLinePreservingSpacing(rawLine, state.transposeSteps, preferFlats);
-          return `<div class="chord-line leading-snug pt-1">${highlightChordsInLine(transposedLine)}</div>`;
-        }
-
-        return `<div class="chord-line text-stone-800 dark:text-parchment-100 leading-relaxed">${escapeHtml(rawLine)}</div>`;
-      });
-
-      container.innerHTML = htmlLines.join('');
-      container.style.fontSize = `${state.fontSizePx}px`;
+      output.style.fontSize = state.fontSizePx + 'px';
+      output.innerHTML = htmlParts.join('');
     }
 
-    function renderActiveSong() {
+    // ============================================================================
+    // WEB AUDIO API METRONOME (TIME SIGNATURE & SWING AWARE)
+    // ============================================================================
+    let audioCtx = null;
+    let isMetroPlaying = false;
+    let metroTimerId = null;
+    let currentBeatIndex = 0;
+
+    function parseTimeSignature(tsStr) {
+      const parts = (tsStr || '4/4').split('/');
+      const beats = Math.max(1, Math.min(16, parseInt(parts[0], 10) || 4));
+      const denom = parseInt(parts[1], 10) || 4;
+      return { beats, denom };
+    }
+
+    function renderBeatPips() {
+      const song = getActiveSong();
+      const container = document.getElementById('metro-beat-pips');
+      const statusText = document.getElementById('metro-status-text');
+      if (!song || !container || !statusText) return;
+
+      const { beats } = parseTimeSignature(song.timeSignature);
+      statusText.textContent = `${song.bpm} · ${song.timeSignature}`;
+
+      container.innerHTML = '';
+      for (let i = 0; i < beats; i++) {
+        const pip = document.createElement('span');
+        pip.className = 'w-2 h-2 rounded-full bg-amber-500 opacity-35 inline-block transition-transform';
+        pip.dataset.beat = String(i);
+        container.appendChild(pip);
+      }
+    }
+
+    function playClickSound(isDownbeat, isSubAccent) {
+      if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) audioCtx = new AudioContextClass();
+      }
+      if (!audioCtx) return;
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(isDownbeat ? 1150 : isSubAccent ? 900 : 720, now);
+      osc.frequency.exponentialRampToValueAtTime(120, now + 0.045);
+
+      gain.gain.setValueAtTime(isDownbeat ? 0.45 : isSubAccent ? 0.3 : 0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.055);
+    }
+
+    function scheduleNextMetronomeTick() {
+      if (!isMetroPlaying) return;
       const song = getActiveSong();
       if (!song) return;
 
-      const origKey = song.key || 'Am';
-      const shiftedKey = state.transposeSteps === 0
-        ? origKey
-        : transposeChordToken(origKey, state.transposeSteps, false);
-      const shiftLabel = state.transposeSteps === 0
-        ? `Key: ${origKey}`
-        : `Key: ${origKey} → ${shiftedKey} (${state.transposeSteps > 0 ? '+' : ''}${state.transposeSteps})`;
-      document.getElementById('header-key-badge').textContent = shiftLabel;
+      const { beats, denom } = parseTimeSignature(song.timeSignature);
+      const beatIdx = currentBeatIndex % beats;
+      const isDownbeat = beatIdx === 0;
+      const isSubAccent = (beats === 6 && beatIdx === 3) || (beats === 7 && (beatIdx === 3 || beatIdx === 5)) || (beats === 12 && (beatIdx % 3 === 0));
 
-      const resetBtn = document.getElementById('transpose-reset-btn');
-      resetBtn.textContent = state.transposeSteps === 0
-        ? '0'
-        : `${state.transposeSteps > 0 ? '+' : ''}${state.transposeSteps}`;
+      playClickSound(isDownbeat, isSubAccent);
 
-      document.getElementById('inline-bpm-input').value = song.bpm || 96;
-      const tsSelect = document.getElementById('inline-timesig-select');
-      const currentTs = song.timeSignature || '4/4';
-      if (![...tsSelect.options].some(opt => opt.value === currentTs)) {
-        const customOpt = document.createElement('option');
-        customOpt.value = currentTs;
-        customOpt.textContent = currentTs;
-        tsSelect.appendChild(customOpt);
-      }
-      tsSelect.value = currentTs;
-
-      const swingBtn = document.getElementById('inline-swing-btn');
-      const swingLabel = document.getElementById('inline-swing-label');
-      const isSwing = Boolean(song.swing);
-      swingLabel.textContent = isSwing ? 'Yes' : 'No';
-      if (isSwing) {
-        swingBtn.classList.add('border-amber-500/60', 'bg-amber-500/15', 'text-amber-800', 'dark:text-amber-300');
-      } else {
-        swingBtn.classList.remove('border-amber-500/60', 'bg-amber-500/15', 'text-amber-800', 'dark:text-amber-300');
-      }
-
-      document.getElementById('song-title-display').textContent = song.title;
-
-      const tagsEl = document.getElementById('song-tags-display');
-      tagsEl.innerHTML = (song.tags || []).map(tag => `
-        <button data-tag="${escapeHtml(tag)}" class="tag-chip-inline text-[11px] font-mono px-2 py-0.5 rounded-md bg-stone-200/80 dark:bg-espresso-800 hover:bg-amber-500/20 text-stone-600 dark:text-amber-300/90 transition">
-          ${escapeHtml(tag)}
-        </button>
-      `).join('');
-
-      tagsEl.querySelectorAll('.tag-chip-inline').forEach(btn => {
-        btn.addEventListener('click', () => {
-          state.selectedTag = btn.dataset.tag;
-          renderSidebar();
-          openSidebarMobile();
-        });
+      const pips = document.querySelectorAll('#metro-beat-pips span');
+      pips.forEach((p, idx) => {
+        p.classList.remove('beat-active');
+        if (idx === beatIdx) {
+          void p.offsetWidth;
+          p.classList.add('beat-active');
+        }
       });
 
-      updateYouTubePlayer(song.youtubeId || '');
-      renderChordSheet(song);
+      const baseQuarterMs = 60000 / (song.bpm || 96);
+      let intervalMs = denom === 8 ? baseQuarterMs / 2 : baseQuarterMs;
+
+      if (song.swing) {
+        intervalMs = (beatIdx % 2 === 0) ? intervalMs * 1.33 : intervalMs * 0.67;
+      }
+
+      currentBeatIndex++;
+      metroTimerId = setTimeout(scheduleNextMetronomeTick, intervalMs);
     }
 
+    function stopMetronome() {
+      isMetroPlaying = false;
+      if (metroTimerId) {
+        clearTimeout(metroTimerId);
+        metroTimerId = null;
+      }
+      currentBeatIndex = 0;
+      document.querySelectorAll('#metro-beat-pips span').forEach(p => p.classList.remove('beat-active'));
+    }
+
+    function toggleMetronome() {
+      if (isMetroPlaying) {
+        stopMetronome();
+      } else {
+        isMetroPlaying = true;
+        currentBeatIndex = 0;
+        scheduleNextMetronomeTick();
+      }
+    }
+
+    // ============================================================================
+    // SMOOTH REQUESTANIMATIONFRAME AUTO-SCROLL
+    // ============================================================================
+    let isAutoScrolling = false;
+    let scrollRafId = null;
+    let lastScrollTimestamp = null;
+    let scrollSpeed = 1.2;
+
+    function updateScrollUI() {
+      const playIcon = document.getElementById('scroll-play-icon');
+      const pauseIcon = document.getElementById('scroll-pause-icon');
+      const label = document.getElementById('scroll-btn-label');
+      if (!playIcon || !pauseIcon || !label) return;
+      if (isAutoScrolling) {
+        playIcon.classList.add('hidden');
+        pauseIcon.classList.remove('hidden');
+        label.textContent = 'Pause';
+      } else {
+        playIcon.classList.remove('hidden');
+        pauseIcon.classList.add('hidden');
+        label.textContent = 'Scroll';
+      }
+    }
+
+    function stopAutoScroll() {
+      isAutoScrolling = false;
+      lastScrollTimestamp = null;
+      if (scrollRafId) {
+        cancelAnimationFrame(scrollRafId);
+        scrollRafId = null;
+      }
+      updateScrollUI();
+    }
+
+    function autoScrollStep(timestamp) {
+      if (!isAutoScrolling) return;
+      if (lastScrollTimestamp !== null) {
+        const dt = (timestamp - lastScrollTimestamp) / 1000;
+        const pixelsPerSec = 24 * scrollSpeed;
+        window.scrollBy(0, pixelsPerSec * dt);
+        if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 2) {
+          stopAutoScroll();
+          return;
+        }
+      }
+      lastScrollTimestamp = timestamp;
+      scrollRafId = requestAnimationFrame(autoScrollStep);
+    }
+
+    function toggleAutoScroll() {
+      if (isAutoScrolling) {
+        stopAutoScroll();
+      } else {
+        isAutoScrolling = true;
+        lastScrollTimestamp = null;
+        updateScrollUI();
+        scrollRafId = requestAnimationFrame(autoScrollStep);
+      }
+    }
+
+    // ============================================================================
+    // GOOGLE DRIVE FOLDER SYNC (.MD FILES)
+    // ============================================================================
+    function updateDriveSyncUI() {
+      const dot = document.getElementById('gdrive-status-dot');
+      const statusLabel = document.getElementById('gdrive-sync-status-label');
+      const pullBtn = document.getElementById('gdrive-pull-now-btn');
+      const pushBtn = document.getElementById('gdrive-push-now-btn');
+      const disconnectBtn = document.getElementById('gdrive-disconnect-btn');
+      const shareBox = document.getElementById('gdrive-share-box');
+      const magicInput = document.getElementById('gdrive-magic-link');
+
+      const connected = Boolean(state.gdriveUrl && state.gdriveUrl.startsWith('https://script.google.com/'));
+      if (dot) {
+        dot.className = `w-2 h-2 rounded-full ${state.isSyncingDrive ? 'bg-amber-400 animate-ping' : connected ? 'bg-emerald-500' : 'bg-stone-400'}`;
+      }
+      if (statusLabel) {
+        statusLabel.textContent = state.isSyncingDrive
+          ? 'Syncing with Google Drive...'
+          : connected
+          ? `Connected to Drive Folder (${state.gdriveFolderId.slice(0, 8)}...)`
+          : 'Not connected';
+      }
+      [pullBtn, pushBtn, disconnectBtn, shareBox].forEach(el => {
+        if (!el) return;
+        el.classList.toggle('hidden', !connected);
+      });
+      if (connected && magicInput && window.location.protocol.startsWith('http')) {
+        const base = window.location.origin + window.location.pathname;
+        magicInput.value = `${base}?driveSync=${encodeURIComponent(state.gdriveUrl)}&folderId=${encodeURIComponent(state.gdriveFolderId)}`;
+      }
+    }
+
+    async function pullSongsFromGoogleDrive(silent = false) {
+      if (!state.gdriveUrl || !state.gdriveUrl.startsWith('https://script.google.com/')) return;
+      state.isSyncingDrive = true;
+      updateDriveSyncUI();
+
+      try {
+        const endpoint = `${state.gdriveUrl}?folderId=${encodeURIComponent(state.gdriveFolderId || DEFAULT_GDRIVE_FOLDER_ID)}&_ts=${Date.now()}`;
+        const res = await fetch(endpoint, { method: 'GET' });
+        const data = await res.json();
+
+        if (data && data.ok && Array.isArray(data.songs)) {
+          if (data.songs.length > 0) {
+            const parsedSongs = data.songs.map(item => {
+              const s = parseMarkdownSong(item.rawMarkdown || '', item.fileName || 'Untitled.md');
+              s.driveFileId = item.driveFileId;
+              s.fileName = item.fileName;
+              return s;
+            });
+            state.songs = parsedSongs;
+            if (!state.songs.some(s => s.id === state.activeSongId)) {
+              state.activeSongId = state.songs[0].id;
+            }
+            saveLibraryToLocal();
+            renderAll();
+            if (!silent) showToast(`Synced ${parsedSongs.length} song(s) from Google Drive!`, 'success');
+          } else if (!silent) {
+            showToast('Connected to Drive folder (no .md files found yet).', 'info');
+          }
+        }
+      } catch (err) {
+        console.warn('Google Drive pull failed:', err);
+        if (!silent) showToast('Could not reach Google Drive Web App. Check deployment permissions.', 'error');
+      } finally {
+        state.isSyncingDrive = false;
+        updateDriveSyncUI();
+      }
+    }
+
+    async function pushSongToGoogleDrive(song, action = 'upsert') {
+      if (!state.gdriveUrl || !state.gdriveUrl.startsWith('https://script.google.com/')) return;
+      try {
+        const fileName = (song.title || 'Untitled').replace(/[\/\\:*?"<>|]/g, '-') + '.md';
+        const rawMarkdown = song.rawMarkdown || buildMarkdownFromSong(song);
+        await fetch(state.gdriveUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            action,
+            folderId: state.gdriveFolderId || DEFAULT_GDRIVE_FOLDER_ID,
+            fileName,
+            rawMarkdown
+          })
+        });
+      } catch (err) {
+        console.warn('Google Drive push failed:', err);
+      }
+    }
+
+    // ============================================================================
+    // UI RENDERING (SIDEBAR, METADATA HEADER, YOUTUBE DRAWER)
+    // ============================================================================
     function renderSidebar() {
+      const listContainer = document.getElementById('song-list-container');
       const tagContainer = document.getElementById('tag-pills-container');
+      const countLabel = document.getElementById('song-count-label');
+      const clearSearchBtn = document.getElementById('clear-search-btn');
+      const clearTagBtn = document.getElementById('clear-tag-btn');
+      if (!listContainer || !tagContainer) return;
+
+      clearSearchBtn.classList.toggle('hidden', !state.searchQuery);
+      clearTagBtn.classList.toggle('hidden', !state.selectedTag);
+
+      // Collect all tags
       const allTags = new Set();
       state.songs.forEach(s => (s.tags || []).forEach(t => allTags.add(t)));
 
-      const clearTagBtn = document.getElementById('clear-tag-btn');
-      clearTagBtn.classList.toggle('hidden', !state.selectedTag);
-
-      tagContainer.innerHTML = Array.from(allTags).sort().map(tag => {
+      tagContainer.innerHTML = '';
+      Array.from(allTags).sort().forEach(tag => {
         const active = state.selectedTag === tag;
-        const classes = active
-          ? 'bg-amber-600 text-white border-amber-500 font-semibold'
-          : 'bg-white dark:bg-espresso-850 text-stone-600 dark:text-stone-300 border-stone-300 dark:border-espresso-700 hover:border-amber-500/50';
-        return `<button data-tag="${escapeHtml(tag)}" class="sidebar-tag-pill text-[11px] font-mono px-2 py-0.5 rounded-lg border transition ${classes}">${escapeHtml(tag)}</button>`;
-      }).join('');
-
-      tagContainer.querySelectorAll('.sidebar-tag-pill').forEach(btn => {
+        const btn = document.createElement('button');
+        btn.className = active
+          ? 'px-2.5 py-1 rounded-lg bg-amber-600 text-white text-[11px] font-semibold transition'
+          : 'px-2.5 py-1 rounded-lg bg-parchment-200/80 dark:bg-espresso-800 hover:bg-amber-500/20 text-stone-700 dark:text-stone-300 text-[11px] font-medium transition';
+        btn.textContent = tag;
         btn.addEventListener('click', () => {
-          const clicked = btn.dataset.tag;
-          state.selectedTag = (state.selectedTag === clicked) ? null : clicked;
+          state.selectedTag = active ? null : tag;
           renderSidebar();
         });
+        tagContainer.appendChild(btn);
       });
 
       const q = state.searchQuery.toLowerCase().trim();
@@ -1509,581 +1315,206 @@ Pukaarataa Chalaa Huun Main
         if (!matchesTag) return false;
         if (!q) return true;
         return (
-          song.title.toLowerCase().includes(q) ||
+          (song.title || '').toLowerCase().includes(q) ||
           (song.key || '').toLowerCase().includes(q) ||
-          (song.tags || []).some(t => t.toLowerCase().includes(q)) ||
-          (song.rawBody || '').toLowerCase().includes(q)
+          (song.content || '').toLowerCase().includes(q) ||
+          (song.tags || []).some(t => t.toLowerCase().includes(q))
         );
       });
 
-      const listContainer = document.getElementById('song-list-container');
-      document.getElementById('song-count-label').textContent = `${filtered.length} of ${state.songs.length} song${state.songs.length === 1 ? '' : 's'}`;
+      countLabel.textContent = `${filtered.length} of ${state.songs.length} song${state.songs.length === 1 ? '' : 's'}`;
+      listContainer.innerHTML = '';
 
       if (filtered.length === 0) {
-        listContainer.innerHTML = `
-          <div class="text-center py-8 px-3 text-xs text-stone-400">
-            No matching songs found. Try clearing your filter or importing a .md file.
-          </div>`;
+        listContainer.innerHTML = `<div class="p-4 text-center text-xs text-stone-400">No matching songs found.</div>`;
         return;
       }
 
-      listContainer.innerHTML = filtered.map(song => {
+      filtered.forEach(song => {
         const isActive = song.id === state.activeSongId;
-        const activeClasses = isActive
-          ? 'bg-amber-500/15 border-amber-500/50 text-stone-900 dark:text-parchment-50 shadow-2xs'
-          : 'bg-transparent border-transparent hover:bg-stone-200/60 dark:hover:bg-espresso-800/70 text-stone-700 dark:text-stone-300';
-        return `
-          <button data-song-id="${escapeHtml(song.id)}" class="song-item-btn w-full text-left p-2.5 rounded-xl border transition flex items-start justify-between gap-2 ${activeClasses}">
-            <div class="min-w-0 flex-1">
-              <div class="font-semibold text-sm truncate">${escapeHtml(song.title)}</div>
-              <div class="flex items-center gap-1.5 mt-1 text-[11px] font-mono text-stone-500 dark:text-stone-400">
-                <span class="px-1.5 py-0.2 rounded bg-stone-200/80 dark:bg-espresso-800 text-amber-800 dark:text-amber-400 font-bold">${escapeHtml(song.key || 'Am')}</span>
-                <span>•</span>
-                <span>${song.bpm || 96} BPM</span>
-                <span>•</span>
-                <span>${escapeHtml(song.timeSignature || '4/4')}${song.swing ? ' Sw' : ''}</span>
-              </div>
-            </div>
-            ${isActive ? '<span class="w-2 h-2 rounded-full bg-amber-500 mt-1.5 shrink-0"></span>' : ''}
-          </button>
-        `;
-      }).join('');
+        const item = document.createElement('button');
+        item.className = isActive
+          ? 'w-full text-left p-3 rounded-xl bg-amber-500/15 border border-amber-500/40 transition'
+          : 'w-full text-left p-3 rounded-xl hover:bg-parchment-200/70 dark:hover:bg-espresso-800/80 border border-transparent transition';
 
-      listContainer.querySelectorAll('.song-item-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          selectSong(btn.dataset.songId);
-          closeSidebarMobile();
+        item.innerHTML = `
+          <div class="font-semibold text-sm truncate ${isActive ? 'text-amber-800 dark:text-amber-300' : 'text-stone-800 dark:text-parchment-100'}">${escapeHtml(song.title)}</div>
+          <div class="flex items-center gap-2 mt-1 text-[11px] font-mono text-stone-500 dark:text-stone-400">
+            <span>Key: ${escapeHtml(song.key || 'C')}</span>
+            <span>•</span>
+            <span>${song.bpm || 96} BPM</span>
+            <span>•</span>
+            <span>${escapeHtml(song.timeSignature || '4/4')}</span>
+          </div>
+        `;
+        item.addEventListener('click', () => {
+          selectSong(song.id);
+          closeMobileSidebar();
         });
+        listContainer.appendChild(item);
       });
     }
 
-    function selectSong(songId) {
-      if (metronome && metronome.isPlaying) {
-        metronome.stop();
-      }
-      if (autoScroll && autoScroll.isPlaying) {
-        autoScroll.stop();
-      }
-
-      const ytIframe = document.getElementById('yt-iframe');
-      if (ytIframe && ytIframe.src) {
-        ytIframe.src = '';
-      }
-
-      state.activeSongId = songId;
-      state.transposeSteps = 0;
-      saveLibrary(false);
-      const song = getActiveSong();
-      if (song) {
-        metronome.setBpm(song.bpm || 96, false);
-        metronome.setTimeSignature(song.timeSignature || '4/4', false);
-        metronome.setSwing(Boolean(song.swing), false);
-      }
-      renderSidebar();
-      renderActiveSong();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    // ============================================================================
-    // YOUTUBE BACKING TRACK HANDLER
-    // ============================================================================
-    function canEmbedYouTubeSafely() {
-      const proto = window.location.protocol;
-      const href = window.location.href || '';
-      if (proto !== 'http:' && proto !== 'https:') return false;
-      if (href.startsWith('about:') || href.startsWith('blob:') || href.startsWith('data:')) return false;
-      try {
-        if (window.self !== window.top && !document.referrer) return false;
-      } catch (e) {
-        return false;
-      }
-      return true;
-    }
-
-    function updateYouTubePlayer(youtubeId) {
-      const input = document.getElementById('yt-url-input');
-      const wrapper = document.getElementById('yt-embed-wrapper');
+    function updateYouTubePlayerUI(song) {
+      const drawer = document.getElementById('youtube-drawer');
+      const urlInput = document.getElementById('yt-url-input');
+      const embedWrapper = document.getElementById('yt-embed-wrapper');
+      const iframe = document.getElementById('yt-iframe');
       const sandboxCard = document.getElementById('yt-sandbox-card');
       const sandboxLink = document.getElementById('yt-sandbox-link');
       const sandboxThumb = document.getElementById('yt-sandbox-thumb');
-      const iframe = document.getElementById('yt-iframe');
-      const btnLabel = document.getElementById('yt-btn-label');
       const fallbackBar = document.getElementById('yt-fallback-bar');
       const externalLink = document.getElementById('yt-external-link');
+      const btnLabel = document.getElementById('yt-btn-label');
 
-      input.value = youtubeId || '';
-      if (youtubeId) {
-        const watchUrl = `https://www.youtube.com/watch?v=${encodeURIComponent(youtubeId)}`;
-        if (externalLink) externalLink.href = watchUrl;
-        if (sandboxLink) sandboxLink.href = watchUrl;
+      if (!song) return;
+      urlInput.value = song.youtubeId ? `https://youtu.be/${song.youtubeId}` : '';
+      btnLabel.textContent = song.youtubeId ? 'Backing Track ●' : 'Backing Track';
 
-        if (canEmbedYouTubeSafely()) {
-          const originParam = `&origin=${encodeURIComponent(window.location.origin)}`;
-          const targetSrc = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(youtubeId)}?rel=0&modestbranding=1&playsinline=1${originParam}`;
-          if (iframe.src !== targetSrc) {
-            iframe.src = targetSrc;
-          }
-          wrapper.classList.remove('hidden');
-          if (sandboxCard) sandboxCard.classList.add('hidden');
-          if (fallbackBar) fallbackBar.classList.remove('hidden');
-        } else {
-          if (iframe.src) iframe.src = '';
-          wrapper.classList.add('hidden');
-          if (fallbackBar) fallbackBar.classList.add('hidden');
-          if (sandboxCard && sandboxThumb) {
-            sandboxThumb.src = `https://i.ytimg.com/vi/${encodeURIComponent(youtubeId)}/hqdefault.jpg`;
-            sandboxCard.classList.remove('hidden');
-          }
-        }
-        btnLabel.textContent = 'Track Ready';
+      if (!song.youtubeId) {
+        embedWrapper.classList.add('hidden');
+        sandboxCard.classList.add('hidden');
+        fallbackBar.classList.add('hidden');
+        iframe.src = '';
+        return;
+      }
+
+      const watchUrl = `https://www.youtube.com/watch?v=${song.youtubeId}`;
+      const isSandboxedOrFile = window.location.protocol === 'file:' || window.location.origin === 'null' || window.self !== window.top;
+
+      if (isSandboxedOrFile) {
+        embedWrapper.classList.add('hidden');
+        iframe.src = '';
+        sandboxCard.classList.remove('hidden');
+        sandboxLink.href = watchUrl;
+        sandboxThumb.src = `https://img.youtube.com/vi/${song.youtubeId}/hqdefault.jpg`;
+        fallbackBar.classList.add('hidden');
       } else {
-        if (iframe.src) iframe.src = '';
-        wrapper.classList.add('hidden');
-        if (sandboxCard) sandboxCard.classList.add('hidden');
-        if (fallbackBar) fallbackBar.classList.add('hidden');
-        btnLabel.textContent = 'Backing Track';
+        sandboxCard.classList.add('hidden');
+        embedWrapper.classList.remove('hidden');
+        fallbackBar.classList.remove('hidden');
+        externalLink.href = watchUrl;
+        iframe.src = `https://www.youtube-nocookie.com/embed/${song.youtubeId}?rel=0&playsinline=1&origin=${encodeURIComponent(window.location.origin)}`;
       }
     }
 
-    // ============================================================================
-    // WEB AUDIO API METRONOME (TIME SIGNATURE & SWING AWARE)
-    // ============================================================================
-    class WebAudioMetronome {
-      constructor() {
-        this.audioCtx = null;
-        this.isPlaying = false;
-        this.bpm = 96;
-        this.timeSignature = '4/4';
-        this.beatsPerMeasure = 4;
-        this.beatUnit = 4;
-        this.swing = false;
-        this.currentBeat = 0;
-        this.lookaheadMs = 25.0;
-        this.scheduleAheadSec = 0.1;
-        this.nextNoteTime = 0.0;
-        this.timerID = null;
-      }
+    function renderSongHeader() {
+      const song = getActiveSong();
+      if (!song) return;
 
-      initContext() {
-        if (!this.audioCtx) {
-          const AudioCtx = window.AudioContext || window.webkitAudioContext;
-          this.audioCtx = new AudioCtx();
-        }
-        if (this.audioCtx.state === 'suspended') {
-          this.audioCtx.resume();
-        }
-      }
+      const baseKey = normalizeChordToken(song.key || 'C');
+      const shiftedKey = transposeSingleChord(baseKey, state.transposeSteps);
+      const keyBadge = document.getElementById('header-key-badge');
+      const transposeResetBtn = document.getElementById('transpose-reset-btn');
 
-      parseTimeSig(ts) {
-        const m = String(ts || '4/4').match(/^(\d+)\/(\d+)$/);
-        if (!m) return { num: 4, den: 4 };
-        const num = Math.min(16, Math.max(1, parseInt(m[1], 10)));
-        const den = [2, 4, 8, 16].includes(parseInt(m[2], 10)) ? parseInt(m[2], 10) : 4;
-        return { num, den };
-      }
-
-      setTimeSignature(newTs, persist = true) {
-        const parsed = this.parseTimeSig(newTs);
-        this.timeSignature = `${parsed.num}/${parsed.den}`;
-        this.beatsPerMeasure = parsed.num;
-        this.beatUnit = parsed.den;
-        this.currentBeat = 0;
-        this.renderBeatPips();
-        this.updateDisplay();
-
-        if (persist) {
-          const song = getActiveSong();
-          if (song) {
-            song.timeSignature = this.timeSignature;
-            song.updatedAt = Date.now();
-            saveLibrary();
-            renderSidebar();
-          }
-        }
-      }
-
-      setSwing(isSwing, persist = true) {
-        this.swing = Boolean(isSwing);
-        if (persist) {
-          const song = getActiveSong();
-          if (song) {
-            song.swing = this.swing;
-            song.updatedAt = Date.now();
-            saveLibrary();
-            renderSidebar();
-            renderActiveSong();
-          }
-        }
-      }
-
-      setBpm(newBpm, persist = true) {
-        const clamped = Math.min(300, Math.max(30, Math.round(newBpm || 96)));
-        this.bpm = clamped;
-        this.updateDisplay();
-        const headerInput = document.getElementById('inline-bpm-input');
-        if (headerInput && parseInt(headerInput.value, 10) !== clamped) {
-          headerInput.value = clamped;
-        }
-        if (persist) {
-          const song = getActiveSong();
-          if (song) {
-            song.bpm = clamped;
-            song.updatedAt = Date.now();
-            saveLibrary();
-            renderSidebar();
-          }
-        }
-      }
-
-      renderBeatPips() {
-        const container = document.getElementById('metro-beat-pips');
-        if (!container) return;
-        const pipCount = Math.min(this.beatsPerMeasure, 8);
-        let html = '';
-        for (let i = 0; i < pipCount; i++) {
-          const isAccent = i === 0 || (this.beatUnit === 8 && this.beatsPerMeasure % 3 === 0 && i % 3 === 0);
-          const sizeClass = isAccent ? 'w-2.5 h-2.5' : 'w-2 h-2';
-          html += `<span data-pip="${i}" class="${sizeClass} rounded-full bg-amber-500 opacity-30 inline-block transition-transform"></span>`;
-        }
-        container.innerHTML = html;
-      }
-
-      updateDisplay() {
-        const statusEl = document.getElementById('metro-status-text');
-        if (statusEl) {
-          statusEl.textContent = `${this.bpm} · ${this.timeSignature}`;
-        }
-      }
-
-      scheduleClick(beatIndex, time) {
-        const osc = this.audioCtx.createOscillator();
-        const gain = this.audioCtx.createGain();
-
-        const isDownbeat = beatIndex === 0;
-        const isSecondaryAccent = !isDownbeat && (
-          (this.beatUnit === 8 && this.beatsPerMeasure >= 6 && beatIndex % 3 === 0) ||
-          (this.beatsPerMeasure === 4 && beatIndex === 2)
-        );
-
-        osc.type = 'triangle';
-        const freq = isDownbeat ? 1150 : (isSecondaryAccent ? 880 : 680);
-        const peakGain = isDownbeat ? 0.55 : (isSecondaryAccent ? 0.35 : 0.24);
-
-        osc.frequency.setValueAtTime(freq, time);
-        gain.gain.setValueAtTime(peakGain, time);
-        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.045);
-
-        osc.connect(gain);
-        gain.connect(this.audioCtx.destination);
-
-        osc.start(time);
-        osc.stop(time + 0.05);
-
-        if (this.swing) {
-          const stepSec = (60.0 / this.bpm) * (4 / this.beatUnit);
-          const swingDelay = stepSec * (2 / 3);
-          const subOsc = this.audioCtx.createOscillator();
-          const subGain = this.audioCtx.createGain();
-          subOsc.type = 'sine';
-          subOsc.frequency.setValueAtTime(520, time + swingDelay);
-          subGain.gain.setValueAtTime(0.14, time + swingDelay);
-          subGain.gain.exponentialRampToValueAtTime(0.001, time + swingDelay + 0.03);
-          subOsc.connect(subGain);
-          subGain.connect(this.audioCtx.destination);
-          subOsc.start(time + swingDelay);
-          subOsc.stop(time + swingDelay + 0.035);
-        }
-
-        const delayMs = Math.max(0, (time - this.audioCtx.currentTime) * 1000);
-        setTimeout(() => {
-          if (!this.isPlaying) return;
-          const pipsContainer = document.getElementById('metro-beat-pips');
-          if (!pipsContainer) return;
-          const pips = pipsContainer.querySelectorAll('[data-pip]');
-          const activePipIdx = beatIndex % pips.length;
-          pips.forEach((pip, idx) => {
-            if (idx === activePipIdx) {
-              pip.classList.remove('beat-active');
-              void pip.offsetWidth;
-              pip.classList.add('beat-active');
-            }
-          });
-        }, delayMs);
-      }
-
-      scheduler() {
-        while (this.nextNoteTime < this.audioCtx.currentTime + this.scheduleAheadSec) {
-          this.scheduleClick(this.currentBeat, this.nextNoteTime);
-          const secondsPerBeat = (60.0 / this.bpm) * (4 / this.beatUnit);
-          this.nextNoteTime += secondsPerBeat;
-          this.currentBeat = (this.currentBeat + 1) % this.beatsPerMeasure;
-        }
-        this.timerID = setTimeout(() => this.scheduler(), this.lookaheadMs);
-      }
-
-      start() {
-        if (this.isPlaying) return;
-        this.initContext();
-        this.isPlaying = true;
-        this.currentBeat = 0;
-        this.nextNoteTime = this.audioCtx.currentTime + 0.02;
-        this.renderBeatPips();
-        this.scheduler();
-        document.getElementById('metro-toggle-btn').classList.add('text-amber-600', 'dark:text-amber-400');
-      }
-
-      stop() {
-        this.isPlaying = false;
-        clearTimeout(this.timerID);
-        document.getElementById('metro-toggle-btn').classList.remove('text-amber-600', 'dark:text-amber-400');
-        document.querySelectorAll('#metro-beat-pips [data-pip]').forEach(pip => {
-          pip.classList.remove('beat-active');
-        });
-      }
-
-      toggle() {
-        if (this.isPlaying) this.stop();
-        else this.start();
-      }
-    }
-
-    const metronome = new WebAudioMetronome();
-
-    // ============================================================================
-    // SMOOTH AUTO-SCROLL ENGINE (requestAnimationFrame + MANUAL OVERRIDE)
-    // ============================================================================
-    class AutoScrollEngine {
-      constructor() {
-        this.isPlaying = false;
-        this.speed = 1.2;
-        this.rafId = null;
-        this.lastTimestamp = null;
-        this.accumulator = 0;
-        this.ignoreScrollEventUntil = 0;
-      }
-
-      setSpeed(val) {
-        this.speed = parseFloat(val) || 1.2;
-        document.getElementById('scroll-speed-label').textContent = `${this.speed.toFixed(1)}x`;
-      }
-
-      step(timestamp) {
-        if (!this.isPlaying) return;
-        if (this.lastTimestamp !== null) {
-          const dtSec = (timestamp - this.lastTimestamp) / 1000;
-          const pxPerSec = 26 * this.speed;
-          this.accumulator += pxPerSec * dtSec;
-
-          if (this.accumulator >= 1) {
-            const moveBy = Math.floor(this.accumulator);
-            this.accumulator -= moveBy;
-            this.ignoreScrollEventUntil = performance.now() + 60;
-            window.scrollBy(0, moveBy);
-
-            if ((window.innerHeight + window.scrollY) >= document.documentElement.scrollHeight - 4) {
-              this.stop();
-              showToast('Reached end of song sheet.');
-              return;
-            }
-          }
-        }
-        this.lastTimestamp = timestamp;
-        this.rafId = requestAnimationFrame(ts => this.step(ts));
-      }
-
-      start() {
-        if (this.isPlaying) return;
-        this.isPlaying = true;
-        this.lastTimestamp = null;
-        this.accumulator = 0;
-        this.updateUI();
-        this.rafId = requestAnimationFrame(ts => this.step(ts));
-      }
-
-      stop(reason = '') {
-        if (!this.isPlaying) return;
-        this.isPlaying = false;
-        cancelAnimationFrame(this.rafId);
-        this.updateUI();
-        if (reason) showToast(reason);
-      }
-
-      toggle() {
-        if (this.isPlaying) this.stop();
-        else this.start();
-      }
-
-      updateUI() {
-        const playIcon = document.getElementById('scroll-play-icon');
-        const pauseIcon = document.getElementById('scroll-pause-icon');
-        const label = document.getElementById('scroll-btn-label');
-        const btn = document.getElementById('scroll-toggle-btn');
-
-        if (this.isPlaying) {
-          playIcon.classList.add('hidden');
-          pauseIcon.classList.remove('hidden');
-          label.textContent = 'Pause';
-          btn.classList.replace('bg-amber-600', 'bg-emerald-600');
-          btn.classList.replace('hover:bg-amber-500', 'hover:bg-emerald-500');
-        } else {
-          playIcon.classList.remove('hidden');
-          pauseIcon.classList.add('hidden');
-          label.textContent = 'Scroll';
-          btn.classList.replace('bg-emerald-600', 'bg-amber-600');
-          btn.classList.replace('hover:bg-emerald-500', 'hover:bg-amber-500');
-        }
-      }
-    }
-
-    const autoScroll = new AutoScrollEngine();
-
-    // ============================================================================
-    // UI INTERACTIONS, SIDEBAR, MODALS & IMPORT/EXPORT
-    // ============================================================================
-    function openSidebarMobile() {
-      const sb = document.getElementById('library-sidebar');
-      const bd = document.getElementById('sidebar-backdrop');
-      sb.classList.remove('-translate-x-full');
-      bd.classList.remove('hidden');
-    }
-
-    function closeSidebarMobile() {
-      const sb = document.getElementById('library-sidebar');
-      const bd = document.getElementById('sidebar-backdrop');
-      sb.classList.add('-translate-x-full');
-      bd.classList.add('hidden');
-    }
-
-    function openImportModal(editMode = false) {
-      const modal = document.getElementById('import-modal');
-      const heading = document.getElementById('modal-heading');
-      const fileSec = document.getElementById('file-upload-section');
-      const divider = document.getElementById('modal-divider');
-      const titleInput = document.getElementById('md-title-input');
-      const textarea = document.getElementById('md-paste-textarea');
-
-      if (editMode) {
-        const song = getActiveSong();
-        if (!song) return;
-        state.editingSongId = song.id;
-        heading.textContent = `Edit Song`;
-        fileSec.classList.add('hidden');
-        divider.classList.add('hidden');
-        titleInput.value = song.title || '';
-        const tagsLine = (song.tags || []).join(' ');
-        const ytLine = song.youtubeId ? `https://youtu.be/${song.youtubeId}` : '';
-        textarea.value = `${tagsLine}\n\nBPM: ${song.bpm || 96}\nTime Signature: ${song.timeSignature || '4/4'}\nKey: ${song.key || 'Am'}\nSwing: ${song.swing ? 'Yes' : 'No'}\nYouTube Link: ${ytLine}\n\n\`\`\`chords\n${song.rawBody}\n\`\`\``;
+      if (state.transposeSteps === 0) {
+        keyBadge.textContent = `Key: ${baseKey}`;
+        transposeResetBtn.textContent = '0';
       } else {
-        state.editingSongId = null;
-        heading.textContent = 'Import .md Song(s)';
-        fileSec.classList.remove('hidden');
-        divider.classList.remove('hidden');
-        titleInput.value = '';
-        textarea.value = '';
+        const sign = state.transposeSteps > 0 ? `+${state.transposeSteps}` : `${state.transposeSteps}`;
+        keyBadge.textContent = `Key: ${baseKey} → ${shiftedKey} (${sign})`;
+        transposeResetBtn.textContent = sign;
       }
 
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
+      document.getElementById('inline-bpm-input').value = song.bpm || 96;
+      document.getElementById('inline-timesig-select').value = song.timeSignature || '4/4';
+      document.getElementById('inline-swing-label').textContent = song.swing ? 'Yes' : 'No';
+      document.getElementById('song-title-display').textContent = song.title;
+
+      const tagsDisplay = document.getElementById('song-tags-display');
+      tagsDisplay.innerHTML = '';
+      (song.tags || []).forEach(tag => {
+        const span = document.createElement('span');
+        span.className = 'px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-800 dark:text-amber-300 text-xs font-mono';
+        span.textContent = tag;
+        tagsDisplay.appendChild(span);
+      });
+
+      renderBeatPips();
+      updateYouTubePlayerUI(song);
     }
 
-    function closeImportModal() {
-      const modal = document.getElementById('import-modal');
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
-      state.editingSongId = null;
-    }
-
-    function showConfirmDialog(title, message, onConfirm) {
-      const modal = document.getElementById('confirm-modal');
-      document.getElementById('confirm-title').textContent = title;
-      document.getElementById('confirm-message').textContent = message;
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
-
-      const cancelBtn = document.getElementById('confirm-cancel-btn');
-      const okBtn = document.getElementById('confirm-ok-btn');
-
-      const cleanup = () => {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-        cancelBtn.onclick = null;
-        okBtn.onclick = null;
-      };
-
-      cancelBtn.onclick = cleanup;
-      okBtn.onclick = () => {
-        cleanup();
-        onConfirm();
-      };
-    }
-
-    // ============================================================================
-    // BOOTSTRAP & EVENT WIRING
-    // ============================================================================
-    document.addEventListener('DOMContentLoaded', async () => {
-      // 1. Load Theme
-      let savedTheme = 'dark';
-      try { savedTheme = localStorage.getItem(THEME_KEY) || 'dark'; } catch (e) {}
-      applyTheme(savedTheme);
-
-      // 2. Check Storage & Load Library
-      checkStorageAvailability();
-      loadLibraryFromLocal();
-
-      // 3. Load Google Drive Sync Config
-      const driveCfg = getDriveSyncConfig();
-      state.gdriveUrl = driveCfg.url;
-      state.gdriveFolderId = driveCfg.folderId;
-      updateDriveSyncUI();
-
-      // 4. Sync Metronome to Active Song & Render
-      const initialSong = getActiveSong();
-      if (initialSong) {
-        metronome.setBpm(initialSong.bpm || 96, false);
-        metronome.setTimeSignature(initialSong.timeSignature || '4/4', false);
-        metronome.setSwing(Boolean(initialSong.swing), false);
-      }
+    function renderAll() {
       renderSidebar();
-      renderActiveSong();
+      renderSongHeader();
+      renderChordSheet();
+      updateDriveSyncUI();
+    }
 
-      // 5. Auto-sync from Google Drive folder (if connected) or repo songs.json
-      if (state.gdriveUrl) {
-        await pullSongsFromGoogleDrive(true);
+    function selectSong(songId) {
+      // Stop any active playback from the previous song
+      stopMetronome();
+      stopAutoScroll();
+      const iframe = document.getElementById('yt-iframe');
+      if (iframe) iframe.src = '';
+
+      state.activeSongId = songId;
+      state.transposeSteps = 0;
+      saveLibraryToLocal();
+      renderAll();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function closeMobileSidebar() {
+      const sidebar = document.getElementById('library-sidebar');
+      const backdrop = document.getElementById('sidebar-backdrop');
+      if (sidebar) sidebar.classList.add('-translate-x-full');
+      if (backdrop) backdrop.classList.add('hidden');
+    }
+
+    // ============================================================================
+    // EVENT LISTENERS & APP BOOTSTRAP
+    // ============================================================================
+    function applyTheme(theme) {
+      const html = document.documentElement;
+      if (theme === 'light') {
+        html.classList.remove('dark');
       } else {
-        await syncFromRepoSongsJson();
+        html.classList.add('dark');
       }
+      try { localStorage.setItem(THEME_KEY, theme); } catch (e) {}
+    }
 
-      // Theme Toggle
+    function setupEventListeners() {
+      // Sidebar toggle
+      document.getElementById('toggle-sidebar-btn').addEventListener('click', () => {
+        const sidebar = document.getElementById('library-sidebar');
+        const backdrop = document.getElementById('sidebar-backdrop');
+        const isClosed = sidebar.classList.contains('-translate-x-full');
+        if (isClosed) {
+          sidebar.classList.remove('-translate-x-full');
+          backdrop.classList.remove('hidden');
+        } else {
+          closeMobileSidebar();
+        }
+      });
+      document.getElementById('close-sidebar-btn').addEventListener('click', closeMobileSidebar);
+      document.getElementById('sidebar-backdrop').addEventListener('click', closeMobileSidebar);
+
+      // Theme toggle
       document.getElementById('theme-toggle-btn').addEventListener('click', () => {
         const isDark = document.documentElement.classList.contains('dark');
         applyTheme(isDark ? 'light' : 'dark');
       });
 
-      // Sidebar Toggle
-      document.getElementById('toggle-sidebar-btn').addEventListener('click', () => {
-        const sb = document.getElementById('library-sidebar');
-        if (window.innerWidth < 1024) {
-          if (sb.classList.contains('-translate-x-full')) openSidebarMobile();
-          else closeSidebarMobile();
-        } else {
-          sb.classList.toggle('lg:hidden');
-        }
-      });
-      document.getElementById('close-sidebar-btn').addEventListener('click', closeSidebarMobile);
-      document.getElementById('sidebar-backdrop').addEventListener('click', closeSidebarMobile);
+      // Font size controls
+      const adjustFont = delta => {
+        state.fontSizePx = Math.max(11, Math.min(26, state.fontSizePx + delta));
+        renderChordSheet();
+      };
+      document.getElementById('font-dec-btn').addEventListener('click', () => adjustFont(-1));
+      document.getElementById('font-inc-btn').addEventListener('click', () => adjustFont(1));
+      document.getElementById('font-dec-btn-mobile').addEventListener('click', () => adjustFont(-1));
+      document.getElementById('font-inc-btn-mobile').addEventListener('click', () => adjustFont(1));
 
-      // Search & Tag Clear
-      const searchInput = document.getElementById('search-input');
-      const clearSearchBtn = document.getElementById('clear-search-btn');
-      searchInput.addEventListener('input', e => {
+      // Search & tag filter
+      document.getElementById('search-input').addEventListener('input', e => {
         state.searchQuery = e.target.value;
-        clearSearchBtn.classList.toggle('hidden', !state.searchQuery);
         renderSidebar();
       });
-      clearSearchBtn.addEventListener('click', () => {
+      document.getElementById('clear-search-btn').addEventListener('click', () => {
         state.searchQuery = '';
-        searchInput.value = '';
-        clearSearchBtn.classList.add('hidden');
+        document.getElementById('search-input').value = '';
         renderSidebar();
       });
       document.getElementById('clear-tag-btn').addEventListener('click', () => {
@@ -2091,90 +1522,44 @@ Pukaarataa Chalaa Huun Main
         renderSidebar();
       });
 
-      // Font Size Controls
-      const adjustFont = delta => {
-        state.fontSizePx = Math.min(26, Math.max(11, state.fontSizePx + delta));
-        document.getElementById('chord-sheet-output').style.fontSize = `${state.fontSizePx}px`;
-      };
-      document.getElementById('font-dec-btn').addEventListener('click', () => adjustFont(-1));
-      document.getElementById('font-inc-btn').addEventListener('click', () => adjustFont(1));
-      document.getElementById('font-dec-btn-mobile').addEventListener('click', () => adjustFont(-1));
-      document.getElementById('font-inc-btn-mobile').addEventListener('click', () => adjustFont(1));
-
-      // Transpose Controls
-      document.getElementById('transpose-down-btn').addEventListener('click', () => {
-        state.transposeSteps -= 1;
-        renderActiveSong();
-      });
-      document.getElementById('transpose-up-btn').addEventListener('click', () => {
-        state.transposeSteps += 1;
-        renderActiveSong();
-      });
-      document.getElementById('transpose-reset-btn').addEventListener('click', () => {
-        state.transposeSteps = 0;
-        renderActiveSong();
-      });
-
-      // Inline BPM & Metronome Controls
+      // Inline BPM, Time Signature, Swing
       document.getElementById('inline-bpm-input').addEventListener('change', e => {
-        metronome.setBpm(parseInt(e.target.value, 10), true);
-      });
-      document.getElementById('inline-timesig-select').addEventListener('change', e => {
-        metronome.setTimeSignature(e.target.value, true);
-      });
-      document.getElementById('inline-swing-btn').addEventListener('click', () => {
-        metronome.setSwing(!metronome.swing, true);
-      });
-      document.getElementById('metro-toggle-btn').addEventListener('click', () => {
-        metronome.toggle();
-      });
-      document.getElementById('metro-dec-btn').addEventListener('click', () => {
-        metronome.setBpm(metronome.bpm - 2, true);
-      });
-      document.getElementById('metro-inc-btn').addEventListener('click', () => {
-        metronome.setBpm(metronome.bpm + 2, true);
-      });
-
-      // Auto-Scroll Controls & Manual Touch/Wheel Pause
-      document.getElementById('scroll-toggle-btn').addEventListener('click', () => {
-        autoScroll.toggle();
-      });
-      document.getElementById('scroll-speed-slider').addEventListener('input', e => {
-        autoScroll.setSpeed(e.target.value);
-      });
-
-      const pauseOnManualUserInput = () => {
-        if (autoScroll.isPlaying && performance.now() > autoScroll.ignoreScrollEventUntil) {
-          autoScroll.stop('Auto-scroll paused (manual scroll)');
-        }
-      };
-      window.addEventListener('wheel', pauseOnManualUserInput, { passive: true });
-      window.addEventListener('touchmove', pauseOnManualUserInput, { passive: true });
-
-      // YouTube Drawer Toggle & Save
-      document.getElementById('toggle-yt-btn').addEventListener('click', () => {
-        document.getElementById('youtube-drawer').classList.toggle('hidden');
-      });
-      document.getElementById('save-yt-btn').addEventListener('click', () => {
         const song = getActiveSong();
         if (!song) return;
-        const rawInput = document.getElementById('yt-url-input').value.trim();
-        const ytId = extractYouTubeId(rawInput);
-        if (rawInput && !ytId) {
-          showToast('Could not detect a valid YouTube Video ID or URL.', 'error');
-          return;
-        }
-        song.youtubeId = ytId;
-        song.updatedAt = Date.now();
-        saveLibrary();
-        updateYouTubePlayer(ytId);
-        showToast(ytId ? 'YouTube backing track loaded!' : 'YouTube track cleared.');
+        const val = Math.max(30, Math.min(300, parseInt(e.target.value, 10) || 96));
+        song.bpm = val;
+        song.rawMarkdown = buildMarkdownFromSong(song);
+        saveLibraryToLocal();
+        renderSongHeader();
+        renderSidebar();
+        pushSongToGoogleDrive(song, 'upsert');
       });
 
-      // Inline Song Title Rename
+      document.getElementById('inline-timesig-select').addEventListener('change', e => {
+        const song = getActiveSong();
+        if (!song) return;
+        song.timeSignature = e.target.value;
+        song.rawMarkdown = buildMarkdownFromSong(song);
+        saveLibraryToLocal();
+        renderSongHeader();
+        renderSidebar();
+        pushSongToGoogleDrive(song, 'upsert');
+      });
+
+      document.getElementById('inline-swing-btn').addEventListener('click', () => {
+        const song = getActiveSong();
+        if (!song) return;
+        song.swing = !song.swing;
+        song.rawMarkdown = buildMarkdownFromSong(song);
+        saveLibraryToLocal();
+        renderSongHeader();
+        pushSongToGoogleDrive(song, 'upsert');
+      });
+
+      // Inline Title Rename
       const titleDisplay = document.getElementById('song-title-display');
       const titleInput = document.getElementById('song-title-input');
-      const startInlineRename = () => {
+      const startTitleEdit = () => {
         const song = getActiveSong();
         if (!song) return;
         titleInput.value = song.title;
@@ -2183,180 +1568,242 @@ Pukaarataa Chalaa Huun Main
         titleInput.focus();
         titleInput.select();
       };
-      const commitInlineRename = () => {
-        if (titleInput.classList.contains('hidden')) return;
+      const commitTitleEdit = () => {
         const song = getActiveSong();
-        const newTitle = titleInput.value.trim();
         titleInput.classList.add('hidden');
         titleDisplay.parentElement.classList.remove('hidden');
-        if (song && newTitle && newTitle !== song.title) {
-          const oldSongSnapshot = { ...song };
+        if (!song) return;
+        const newTitle = titleInput.value.trim();
+        if (newTitle && newTitle !== song.title) {
+          const oldSong = { ...song };
           song.title = newTitle;
-          song.updatedAt = Date.now();
-          saveLibrary(false);
-          if (state.gdriveUrl) {
-            deleteSongFileInDrive(oldSongSnapshot);
-            upsertSongFileInDrive(song, true);
-          }
-          renderSidebar();
-          renderActiveSong();
-          showToast(`Renamed to "${newTitle}"`);
+          song.rawMarkdown = buildMarkdownFromSong(song);
+          saveLibraryToLocal();
+          renderAll();
+          pushSongToGoogleDrive(oldSong, 'delete');
+          pushSongToGoogleDrive(song, 'upsert');
+          showToast('Song renamed!');
         }
       };
-      titleDisplay.addEventListener('click', startInlineRename);
-      document.getElementById('rename-title-btn').addEventListener('click', startInlineRename);
-      titleInput.addEventListener('blur', commitInlineRename);
+      titleDisplay.addEventListener('click', startTitleEdit);
+      document.getElementById('rename-title-btn').addEventListener('click', startTitleEdit);
+      titleInput.addEventListener('blur', commitTitleEdit);
       titleInput.addEventListener('keydown', e => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          commitInlineRename();
-        } else if (e.key === 'Escape') {
+        if (e.key === 'Enter') commitTitleEdit();
+        if (e.key === 'Escape') {
           titleInput.classList.add('hidden');
           titleDisplay.parentElement.classList.remove('hidden');
         }
       });
 
-      // Import / Edit Modal Listeners
-      document.getElementById('open-import-btn').addEventListener('click', () => openImportModal(false));
-      document.getElementById('edit-song-btn').addEventListener('click', () => openImportModal(true));
+      // YouTube Drawer
+      document.getElementById('toggle-yt-btn').addEventListener('click', () => {
+        document.getElementById('youtube-drawer').classList.toggle('hidden');
+      });
+      document.getElementById('save-yt-btn').addEventListener('click', () => {
+        const song = getActiveSong();
+        if (!song) return;
+        const raw = document.getElementById('yt-url-input').value;
+        song.youtubeId = extractYouTubeId(raw);
+        song.rawMarkdown = buildMarkdownFromSong(song);
+        saveLibraryToLocal();
+        updateYouTubePlayerUI(song);
+        pushSongToGoogleDrive(song, 'upsert');
+        showToast(song.youtubeId ? 'YouTube track linked!' : 'Cleared YouTube link.');
+      });
+
+      // Transpose Controls
+      document.getElementById('transpose-down-btn').addEventListener('click', () => {
+        state.transposeSteps = ((state.transposeSteps - 1 + 12) % 12);
+        renderSongHeader();
+        renderChordSheet();
+      });
+      document.getElementById('transpose-up-btn').addEventListener('click', () => {
+        state.transposeSteps = ((state.transposeSteps + 1) % 12);
+        renderSongHeader();
+        renderChordSheet();
+      });
+      document.getElementById('transpose-reset-btn').addEventListener('click', () => {
+        state.transposeSteps = 0;
+        renderSongHeader();
+        renderChordSheet();
+      });
+
+      // Metronome Controls
+      document.getElementById('metro-toggle-btn').addEventListener('click', toggleMetronome);
+      document.getElementById('metro-dec-btn').addEventListener('click', () => {
+        const song = getActiveSong();
+        if (!song) return;
+        song.bpm = Math.max(30, (song.bpm || 96) - 2);
+        saveLibraryToLocal();
+        renderSongHeader();
+        renderSidebar();
+      });
+      document.getElementById('metro-inc-btn').addEventListener('click', () => {
+        const song = getActiveSong();
+        if (!song) return;
+        song.bpm = Math.min(300, (song.bpm || 96) + 2);
+        saveLibraryToLocal();
+        renderSongHeader();
+        renderSidebar();
+      });
+
+      // Auto-Scroll Controls & Manual Interaction Pause
+      document.getElementById('scroll-toggle-btn').addEventListener('click', toggleAutoScroll);
+      document.getElementById('scroll-speed-slider').addEventListener('input', e => {
+        scrollSpeed = parseFloat(e.target.value) || 1.2;
+        document.getElementById('scroll-speed-label').textContent = scrollSpeed.toFixed(1) + 'x';
+      });
+      ['wheel', 'touchstart'].forEach(evt => {
+        window.addEventListener(evt, () => {
+          if (isAutoScrolling) stopAutoScroll();
+        }, { passive: true });
+      });
+
+      // Import / Edit Modal
+      const importModal = document.getElementById('import-modal');
+      const openImportModal = (editSong = null) => {
+        state.editingSongId = editSong ? editSong.id : null;
+        document.getElementById('modal-heading').textContent = editSong ? 'Edit Song Markdown' : 'Import .md Song(s)';
+        document.getElementById('file-upload-section').classList.toggle('hidden', Boolean(editSong));
+        document.getElementById('modal-divider').classList.toggle('hidden', Boolean(editSong));
+        document.getElementById('md-title-input').value = editSong ? editSong.title : '';
+        document.getElementById('md-paste-textarea').value = editSong ? (editSong.rawMarkdown || buildMarkdownFromSong(editSong)) : '';
+        importModal.classList.remove('hidden');
+        importModal.classList.add('flex');
+      };
+      const closeImportModal = () => {
+        importModal.classList.add('hidden');
+        importModal.classList.remove('flex');
+        state.editingSongId = null;
+      };
+
+      document.getElementById('open-import-btn').addEventListener('click', () => openImportModal(null));
+      document.getElementById('edit-song-btn').addEventListener('click', () => openImportModal(getActiveSong()));
       document.getElementById('close-modal-btn').addEventListener('click', closeImportModal);
       document.getElementById('cancel-modal-btn').addEventListener('click', closeImportModal);
 
       // Batch .md File Upload
       document.getElementById('md-file-input').addEventListener('change', async e => {
         const files = Array.from(e.target.files || []);
-        if (files.length === 0) return;
-
+        if (!files.length) return;
         let importedCount = 0;
-        let lastId = null;
 
         for (const file of files) {
           const text = await file.text();
           const parsed = parseMarkdownSong(text, file.name);
-          const newId = `song-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-          const newSong = { id: newId, ...parsed, updatedAt: Date.now() };
-          state.songs.unshift(newSong);
-          lastId = newId;
-          importedCount++;
-          if (state.gdriveUrl) {
-            upsertSongFileInDrive(newSong, true);
+          const existingIdx = state.songs.findIndex(s => s.title.toLowerCase() === parsed.title.toLowerCase());
+          if (existingIdx !== -1) {
+            parsed.id = state.songs[existingIdx].id;
+            state.songs[existingIdx] = parsed;
+          } else {
+            state.songs.unshift(parsed);
           }
+          pushSongToGoogleDrive(parsed, 'upsert');
+          importedCount++;
         }
 
+        state.activeSongId = state.songs[0].id;
+        state.transposeSteps = 0;
+        saveLibraryToLocal();
+        renderAll();
         e.target.value = '';
-        if (importedCount > 0) {
-          saveLibrary(false);
-          closeImportModal();
-          selectSong(lastId);
-          showToast(`Imported ${importedCount} song${importedCount > 1 ? 's' : ''}!`);
-        }
+        closeImportModal();
+        showToast(`Imported ${importedCount} song(s)!`, 'success');
       });
 
       // Save Pasted / Edited Markdown
       document.getElementById('save-md-btn').addEventListener('click', () => {
-        const rawText = document.getElementById('md-paste-textarea').value;
-        const explicitTitle = document.getElementById('md-title-input').value.trim();
-        if (!rawText.trim()) {
-          showToast('Please paste Markdown content or select a .md file.', 'error');
+        const raw = document.getElementById('md-paste-textarea').value.trim();
+        const customTitle = document.getElementById('md-title-input').value.trim();
+        if (!raw) {
+          showToast('Please paste Markdown content or upload a .md file.', 'error');
           return;
         }
+
+        const parsed = parseMarkdownSong(raw, customTitle || 'Untitled Song');
+        if (customTitle) parsed.title = customTitle;
+        parsed.rawMarkdown = buildMarkdownFromSong(parsed);
 
         if (state.editingSongId) {
           const idx = state.songs.findIndex(s => s.id === state.editingSongId);
           if (idx !== -1) {
-            const oldSongSnapshot = { ...state.songs[idx] };
-            const fallbackName = explicitTitle ? `${explicitTitle}.md` : `${state.songs[idx].title}.md`;
-            const parsed = parseMarkdownSong(rawText, fallbackName);
-            if (explicitTitle) parsed.title = explicitTitle;
-            state.songs[idx] = { ...state.songs[idx], ...parsed, updatedAt: Date.now() };
-            saveLibrary(false);
-            if (state.gdriveUrl) {
-              if (oldSongSnapshot.title !== state.songs[idx].title) {
-                deleteSongFileInDrive(oldSongSnapshot);
-              }
-              upsertSongFileInDrive(state.songs[idx], true);
+            const oldSong = state.songs[idx];
+            parsed.id = oldSong.id;
+            state.songs[idx] = parsed;
+            if (oldSong.title !== parsed.title) {
+              pushSongToGoogleDrive(oldSong, 'delete');
             }
-            const active = getActiveSong();
-            if (active) {
-              metronome.setBpm(active.bpm || 96, false);
-              metronome.setTimeSignature(active.timeSignature || '4/4', false);
-              metronome.setSwing(Boolean(active.swing), false);
-            }
-            closeImportModal();
-            renderSidebar();
-            renderActiveSong();
-            showToast('Song updated!');
           }
         } else {
-          const fallbackName = explicitTitle ? `${explicitTitle}.md` : 'Pasted Song.md';
-          const parsed = parseMarkdownSong(rawText, fallbackName);
-          if (explicitTitle) parsed.title = explicitTitle;
-          const newId = `song-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-          const newSong = { id: newId, ...parsed, updatedAt: Date.now() };
-          state.songs.unshift(newSong);
-          saveLibrary(false);
-          if (state.gdriveUrl) {
-            upsertSongFileInDrive(newSong, true);
-          }
-          closeImportModal();
-          selectSong(newId);
-          showToast(`Added "${parsed.title}"!`);
+          state.songs.unshift(parsed);
+          state.activeSongId = parsed.id;
         }
+
+        saveLibraryToLocal();
+        renderAll();
+        pushSongToGoogleDrive(parsed, 'upsert');
+        closeImportModal();
+        showToast('Song saved!', 'success');
       });
 
-      // Delete Song
+      // Delete Song Confirmation Modal
+      const confirmModal = document.getElementById('confirm-modal');
       document.getElementById('delete-song-btn').addEventListener('click', () => {
         const song = getActiveSong();
         if (!song) return;
-        showConfirmDialog(
-          'Delete Song?',
-          `Remove "${song.title}" from your songbook?`,
-          () => {
-            if (state.gdriveUrl) {
-              deleteSongFileInDrive(song);
-            }
-            state.songs = state.songs.filter(s => s.id !== song.id);
-            if (state.songs.length === 0) {
-              initStarterSong();
-            } else {
-              state.activeSongId = state.songs[0].id;
-              saveLibrary(false);
-            }
-            selectSong(state.activeSongId);
-            showToast('Song removed.');
-          }
-        );
+        document.getElementById('confirm-message').textContent = `Remove "${song.title}" from your songbook?`;
+        confirmModal.classList.remove('hidden');
+        confirmModal.classList.add('flex');
+      });
+      document.getElementById('confirm-cancel-btn').addEventListener('click', () => {
+        confirmModal.classList.add('hidden');
+        confirmModal.classList.remove('flex');
+      });
+      document.getElementById('confirm-ok-btn').addEventListener('click', () => {
+        const song = getActiveSong();
+        confirmModal.classList.add('hidden');
+        confirmModal.classList.remove('flex');
+        if (!song) return;
+
+        pushSongToGoogleDrive(song, 'delete');
+        state.songs = state.songs.filter(s => s.id !== song.id);
+        if (state.songs.length === 0) {
+          state.songs = [parseMarkdownSong(STARTER_SONG_MD, 'Bekaraar x Pukaarataa (Mashup).md')];
+        }
+        state.activeSongId = state.songs[0].id;
+        state.transposeSteps = 0;
+        saveLibraryToLocal();
+        renderAll();
+        showToast('Song removed.');
       });
 
-      // Export Library (.json)
+      // Export / Restore songs.json
       document.getElementById('export-json-btn').addEventListener('click', () => {
-        const payload = JSON.stringify(state.songs, null, 2);
-        const blob = new Blob([payload], { type: 'application/json' });
+        const blob = new Blob([JSON.stringify(state.songs, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `songs.json`;
+        a.download = 'songs.json';
         document.body.appendChild(a);
         a.click();
         a.remove();
         URL.revokeObjectURL(url);
-        showToast('Downloaded songs.json backup!');
+        showToast('Exported songs.json backup!', 'success');
       });
 
-      // Restore Library (.json)
       document.getElementById('restore-json-input').addEventListener('change', async e => {
-        const file = e.target.files?.[0];
+        const file = e.target.files && e.target.files[0];
         if (!file) return;
         try {
-          const text = await file.text();
-          const imported = JSON.parse(text);
-          if (!Array.isArray(imported) || imported.length === 0) {
-            throw new Error('Invalid library format');
+          const parsed = JSON.parse(await file.text());
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            state.songs = parsed;
+            state.activeSongId = state.songs[0].id;
+            saveLibraryToLocal();
+            renderAll();
+            showToast(`Restored ${parsed.length} song(s) from JSON!`, 'success');
           }
-          state.songs = imported;
-          saveLibrary();
-          selectSong(state.songs[0].id);
-          showToast(`Restored ${imported.length} song(s) from backup!`);
         } catch (err) {
           showToast('Invalid JSON backup file.', 'error');
         }
@@ -2364,78 +1811,91 @@ Pukaarataa Chalaa Huun Main
       });
 
       // Google Drive Sync Modal Listeners
+      const gdriveModal = document.getElementById('gdrive-modal');
       document.getElementById('open-gdrive-btn').addEventListener('click', () => {
-        const gdriveInput = document.getElementById('gdrive-url-input');
-        const folderInput = document.getElementById('gdrive-folder-input');
-        if (gdriveInput) gdriveInput.value = state.gdriveUrl || '';
-        if (folderInput && state.gdriveFolderId) {
-          folderInput.value = state.gdriveFolderId;
-        }
+        document.getElementById('gdrive-folder-input').value = state.gdriveFolderId || DEFAULT_GDRIVE_FOLDER_ID;
+        document.getElementById('gdrive-url-input').value = state.gdriveUrl || '';
         updateDriveSyncUI();
-        const modal = document.getElementById('gdrive-modal');
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
+        gdriveModal.classList.remove('hidden');
+        gdriveModal.classList.add('flex');
       });
-
       document.getElementById('close-gdrive-modal-btn').addEventListener('click', () => {
-        const modal = document.getElementById('gdrive-modal');
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
+        gdriveModal.classList.add('hidden');
+        gdriveModal.classList.remove('flex');
       });
-
-      document.getElementById('save-gdrive-url-btn').addEventListener('click', async () => {
-        const urlInput = document.getElementById('gdrive-url-input');
-        const folderInput = document.getElementById('gdrive-folder-input');
-        const url = (urlInput ? urlInput.value : '').trim();
-        const folderId = extractDriveFolderId(folderInput ? folderInput.value : '');
-
-        if (!url || !url.startsWith('https://script.google.com/')) {
-          showToast('Please paste a valid Google Apps Script Web App URL (https://script.google.com/.../exec)', 'error');
+      document.getElementById('save-gdrive-url-btn').addEventListener('click', () => {
+        const urlVal = document.getElementById('gdrive-url-input').value.trim();
+        const folderVal = extractFolderId(document.getElementById('gdrive-folder-input').value);
+        if (!urlVal.startsWith('https://script.google.com/')) {
+          showToast('Please enter a valid Google Apps Script Web App URL.', 'error');
           return;
         }
-
-        state.gdriveUrl = url;
-        state.gdriveFolderId = folderId;
+        state.gdriveUrl = urlVal;
+        state.gdriveFolderId = folderVal;
         try {
-          localStorage.setItem(GDRIVE_SYNC_URL_KEY, url);
-          localStorage.setItem(GDRIVE_FOLDER_ID_KEY, folderId);
+          localStorage.setItem(GDRIVE_SYNC_URL_KEY, urlVal);
+          localStorage.setItem(GDRIVE_FOLDER_ID_KEY, folderVal);
         } catch (e) {}
-
-        updateDriveSyncUI();
-        await pullSongsFromGoogleDrive(false);
-      });
-
-      document.getElementById('gdrive-pull-now-btn').addEventListener('click', () => {
         pullSongsFromGoogleDrive(false);
       });
-
-      document.getElementById('gdrive-push-now-btn').addEventListener('click', () => {
-        pushAllSongsToGoogleDrive(false);
+      document.getElementById('gdrive-pull-now-btn').addEventListener('click', () => pullSongsFromGoogleDrive(false));
+      document.getElementById('gdrive-push-now-btn').addEventListener('click', async () => {
+        for (const s of state.songs) {
+          await pushSongToGoogleDrive(s, 'upsert');
+        }
+        showToast(`Pushed ${state.songs.length} song(s) to Google Drive!`, 'success');
       });
-
       document.getElementById('gdrive-disconnect-btn').addEventListener('click', () => {
         state.gdriveUrl = '';
-        try { localStorage.removeItem(GDRIVE_SYNC_URL_KEY); } catch (e) {}
+        try { localStorage.setItem(GDRIVE_SYNC_URL_KEY, ''); } catch (e) {}
         const urlInput = document.getElementById('gdrive-url-input');
         if (urlInput) urlInput.value = '';
         updateDriveSyncUI();
-        showToast('Disconnected from Google Drive.');
+        showToast('Paused Google Drive sync.');
       });
-
+      document.getElementById('copy-apps-script-btn').addEventListener('click', () => {
+        const code = document.getElementById('apps-script-snippet').textContent;
+        const ta = document.createElement('textarea');
+        ta.value = code;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+        showToast('Apps Script code copied!', 'success');
+      });
       document.getElementById('copy-magic-link-btn').addEventListener('click', () => {
         const input = document.getElementById('gdrive-magic-link');
-        if (!input || !input.value) return;
         input.select();
-        navigator.clipboard?.writeText(input.value);
-        showToast('1-Tap Sync Link copied! Open it on any browser or device.');
+        document.execCommand('copy');
+        showToast('1-Tap Sync Link copied!', 'success');
       });
+    }
 
-      document.getElementById('copy-apps-script-btn').addEventListener('click', () => {
-        const codeEl = document.getElementById('apps-script-snippet');
-        if (!codeEl) return;
-        navigator.clipboard?.writeText(codeEl.textContent);
-        showToast('Apps Script code copied to clipboard!');
-      });
+    window.addEventListener('DOMContentLoaded', () => {
+      checkStorageAvailability();
+      try {
+        const savedTheme = localStorage.getItem(THEME_KEY);
+        if (savedTheme) applyTheme(savedTheme);
+      } catch (e) {}
+
+      const driveCfg = extractDriveConfigFromUrl();
+      state.gdriveUrl = driveCfg.url;
+      state.gdriveFolderId = driveCfg.folderId;
+
+      const loadedLocal = loadLibraryFromLocal();
+      if (!loadedLocal || state.songs.length === 0) {
+        const starter = parseMarkdownSong(STARTER_SONG_MD, 'Bekaraar x Pukaarataa (Mashup).md');
+        state.songs = [starter];
+        state.activeSongId = starter.id;
+        saveLibraryToLocal();
+      }
+
+      setupEventListeners();
+      renderAll();
+
+      if (state.gdriveUrl) {
+        pullSongsFromGoogleDrive(true);
+      }
     });
   </script>
 </body>
