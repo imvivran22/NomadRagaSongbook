@@ -112,6 +112,11 @@
   <!-- Toast Notification Banner -->
   <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
+  <!-- Storage Warning Banner (shown if browser blocks localStorage, e.g., Private mode / restricted iframe) -->
+  <div id="storage-warning-banner" class="hidden bg-amber-600 text-white text-xs px-4 py-2 text-center font-medium">
+    Browser storage is restricted in this tab/iframe—changes won't persist after closing unless you click <strong>Backup (songs.json)</strong> and upload it to your GitHub repo.
+  </div>
+
   <!-- Top Header Bar -->
   <header class="sticky top-0 z-30 bg-parchment-100/90 dark:bg-espresso-900/90 backdrop-blur-md border-b border-stone-200 dark:border-espresso-700/80 px-3 sm:px-6 py-2.5">
     <div class="max-w-7xl mx-auto flex items-center justify-between gap-2">
@@ -151,8 +156,8 @@
           <span>Import .md</span>
         </button>
 
-        <!-- Export JSON Button -->
-        <button id="export-json-btn" title="Backup Library (.json)" class="p-2 sm:px-3 sm:py-2 rounded-xl bg-parchment-200/80 dark:bg-espresso-800 hover:bg-stone-300/70 dark:hover:bg-espresso-700 text-stone-700 dark:text-parchment-200 text-xs sm:text-sm font-medium transition flex items-center gap-1.5 active:scale-95">
+        <!-- Export songs.json Button -->
+        <button id="export-json-btn" title="Download songs.json (upload to GitHub repo to sync across all devices!)" class="p-2 sm:px-3 sm:py-2 rounded-xl bg-parchment-200/80 dark:bg-espresso-800 hover:bg-stone-300/70 dark:hover:bg-espresso-700 text-stone-700 dark:text-parchment-200 text-xs sm:text-sm font-medium transition flex items-center gap-1.5 active:scale-95">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
           </svg>
@@ -161,11 +166,9 @@
 
         <!-- Theme Toggle -->
         <button id="theme-toggle-btn" title="Toggle Stage Dark / Outdoor Light Mode" class="p-2.5 rounded-xl bg-parchment-200/80 dark:bg-espresso-800 hover:bg-stone-300/70 dark:hover:bg-espresso-700 text-stone-700 dark:text-amber-300 transition active:scale-95">
-          <!-- Sun icon (shown in dark mode) -->
           <svg id="icon-sun" class="w-4 h-4 hidden dark:block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
           </svg>
-          <!-- Moon icon (shown in light mode) -->
           <svg id="icon-moon" class="w-4 h-4 block dark:hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
           </svg>
@@ -219,13 +222,18 @@
         <!-- Populated dynamically -->
       </div>
 
-      <!-- Sidebar Footer: Restore JSON option -->
-      <div class="p-3 border-t border-stone-200 dark:border-espresso-800 flex items-center justify-between text-xs text-stone-500 dark:text-stone-400">
-        <span id="song-count-label">1 song</span>
-        <label class="cursor-pointer text-amber-700 dark:text-amber-400 hover:underline font-medium">
-          Restore .json
-          <input id="restore-json-input" type="file" accept=".json,application/json" class="hidden" />
-        </label>
+      <!-- Sidebar Footer: Sync & Restore JSON option -->
+      <div class="p-3 border-t border-stone-200 dark:border-espresso-800 space-y-2 text-xs text-stone-500 dark:text-stone-400">
+        <div class="flex items-center justify-between">
+          <span id="song-count-label">1 song</span>
+          <label class="cursor-pointer text-amber-700 dark:text-amber-400 hover:underline font-medium">
+            Restore .json
+            <input id="restore-json-input" type="file" accept=".json,application/json" class="hidden" />
+          </label>
+        </div>
+        <p class="text-[11px] leading-snug text-stone-400 dark:text-stone-500">
+          Tip: Click <strong>Backup</strong> to download <code>songs.json</code> and upload it to your GitHub repo so all your songs load automatically on every device.
+        </p>
       </div>
     </aside>
 
@@ -326,7 +334,7 @@
             <div id="yt-embed-wrapper" class="hidden relative w-full pt-[56.25%] rounded-xl overflow-hidden bg-black border border-espresso-700">
               <iframe id="yt-iframe" class="absolute inset-0 w-full h-full" src="" title="YouTube Backing Track" frameborder="0" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
             </div>
-            <!-- Sandbox / Restricted-Referer Fallback Card (prevents Error 153 in local/sandbox previews) -->
+            <!-- Sandbox / Restricted-Referer Fallback Card -->
             <div id="yt-sandbox-card" class="hidden relative w-full rounded-xl overflow-hidden bg-espresso-950 border border-espresso-700 group">
               <a id="yt-sandbox-link" href="#" target="_blank" rel="noopener noreferrer" class="block relative aspect-video w-full overflow-hidden">
                 <img id="yt-sandbox-thumb" src="" alt="YouTube Backing Track Thumbnail" onerror="this.src='https://placehold.co/800x450/1a1512/fbbf24?text=Open+YouTube+Backing+Track'" class="w-full h-full object-cover opacity-75 group-hover:opacity-95 group-hover:scale-[1.02] transition duration-300" />
@@ -380,7 +388,6 @@
         <!-- 2. Web Audio Metronome Controls -->
         <div class="flex items-center gap-1.5 bg-parchment-200/80 dark:bg-espresso-900/90 px-2.5 py-1 rounded-xl border border-stone-300/60 dark:border-espresso-700">
           <button id="metro-toggle-btn" title="Start/Stop Metronome" class="flex items-center gap-2 pr-1.5 py-1 rounded-lg font-semibold text-xs text-stone-800 dark:text-parchment-100 hover:text-amber-500 transition active:scale-95">
-            <!-- Dynamic Beat Pips Container (reflects Time Signature numerator) -->
             <span id="metro-beat-pips" class="inline-flex items-center gap-1">
               <span class="w-2.5 h-2.5 rounded-full bg-amber-500 opacity-35 inline-block"></span>
             </span>
@@ -488,7 +495,7 @@
      * Single-file application architecture:
      * 1. Music Theory & Chord Transposition Engine (with minor typo normalization)
      * 2. Markdown & Frontmatter Parser + Spacing-Preserving Renderer
-     * 3. LocalStorage State & Starter Song Initialization
+     * 3. Dual-Layer Persistence: LocalStorage + Optional Repo `songs.json` Sync
      * 4. Web Audio API Precision Metronome
      * 5. RequestAnimationFrame Auto-Scroll with Touch/Wheel Override
      * 6. UI Rendering, Search/Tag Filtering, Batch .md Import & JSON Backup
@@ -496,6 +503,7 @@
      */
 
     const STORAGE_KEY = 'nomad_raga_songbook_v1';
+    const ACTIVE_SONG_KEY = 'nomad_raga_active_song_v1';
     const THEME_KEY = 'nomad_raga_theme';
 
     // Default starter song requested by user
@@ -564,7 +572,8 @@ Pukaarataa Chalaa Huun Main
       searchQuery: '',
       selectedTag: null,
       fontSizePx: 15,
-      editingSongId: null, // null = importing new, string = editing existing
+      editingSongId: null,
+      storageAvailable: true
     };
 
     // ============================================================================
@@ -588,36 +597,12 @@ Pukaarataa Chalaa Huun Main
       'B': 11, 'Cb': 11
     };
 
-    // Regex matching valid musical chord tokens
-    // Captures: Root (A-G + optional #/b), Quality/Extensions, Optional Bass Note (/G#)
     const CHORD_TOKEN_REGEX = /^([A-G](?:#|b)?)(M|maj|min|m|dim|aug|sus|add|\d|\+|-|\(|\))*(\/[A-G](?:#|b)?)?$/;
 
-    /**
-     * Normalizes chord typos such as `BM` -> `Bm`, `F#M` -> `F#m`, `AM7` -> `Am7`
-     * while preserving `Cmaj7` or `CMaj7`.
-     */
     function normalizeChordToken(token) {
-      // Match Root followed by uppercase 'M' that isn't followed by 'aj' (so BM -> Bm, AM7 -> Am7, but Cmaj7 stays Cmaj7)
       return token.replace(/^([A-G](?:#|b)?)M(?!aj)(.*)$/, '$1m$2');
     }
 
-    /**
-     * Checks if a whitespace-separated token is a chord (or bar/rhythm marker like | or / or %)
-     */
-    function isChordOrMarker(token) {
-      const cleaned = token.replace(/^[\(\[\|]+|[\)\]\|\.,]+$/g, '');
-      if (!cleaned) return false;
-      if (/^[|\/%x\-]+$/i.test(cleaned)) return true;
-      return CHORD_TOKEN_REGEX.test(cleaned);
-    }
-
-    /**
-     * Determines if an entire line is a chord-only line.
-     * Rules:
-     * - Must have at least 1 valid chord token
-     * - Every non-whitespace token on the line must be a valid chord or musical bar marker
-     * - Must not be a section cue like [Verse 1] or (Music = song melody)
-     */
     function isChordLine(line) {
       const trimmed = line.trim();
       if (!trimmed) return false;
@@ -632,19 +617,14 @@ Pukaarataa Chalaa Huun Main
         if (CHORD_TOKEN_REGEX.test(cleaned)) {
           hasActualChord = true;
         } else if (/^[|\/%x\-]+$/i.test(cleaned)) {
-          // Bar separators are fine alongside chords
           continue;
         } else {
-          // Contains regular lyric word
           return false;
         }
       }
       return hasActualChord;
     }
 
-    /**
-     * Transposes a single chord token by `steps` semitones.
-     */
     function transposeSingleChord(rawToken, steps, preferFlats = false) {
       const normalized = normalizeChordToken(rawToken);
       if (steps === 0) return normalized;
@@ -671,14 +651,7 @@ Pukaarataa Chalaa Huun Main
       return `${newRoot}${quality}${newBass}`;
     }
 
-    /**
-     * Transposes a full chord line while preserving exact horizontal column alignment
-     * above the lyrics beneath it!
-     * If a transposed chord becomes 1 char wider (e.g. A -> A#), it consumes 1 trailing space
-     * so subsequent chords stay locked to their exact lyric syllables.
-     */
     function transposeChordLinePreservingSpacing(line, steps, preferFlats = false) {
-      // First normalize any minor typos like BM -> Bm while preserving spacing
       let result = '';
       let i = 0;
 
@@ -689,14 +662,12 @@ Pukaarataa Chalaa Huun Main
           continue;
         }
 
-        // Capture contiguous non-space token
         let start = i;
         while (i < line.length && !/\s/.test(line[i])) {
           i++;
         }
         const rawToken = line.slice(start, i);
 
-        // Separate leading/trailing punctuation like (Bm) or |Bm|
         const tokenMatch = rawToken.match(/^([\(\[\|]*)(.*?)([\)\]\|\.,]*)$/);
         const prefix = tokenMatch ? tokenMatch[1] : '';
         const core = tokenMatch ? tokenMatch[2] : rawToken;
@@ -711,11 +682,9 @@ Pukaarataa Chalaa Huun Main
         const lengthDiff = newToken.length - rawToken.length;
         result += newToken;
 
-        // Compensate trailing spaces so downstream chord positions never drift
         if (lengthDiff > 0) {
           let spacesToEat = lengthDiff;
           while (spacesToEat > 0 && i < line.length && line[i] === ' ') {
-            // Keep at least 1 space between adjacent chords if there were multiple
             if (i + 1 < line.length && line[i + 1] === ' ') {
               i++;
               spacesToEat--;
@@ -724,7 +693,6 @@ Pukaarataa Chalaa Huun Main
             }
           }
         } else if (lengthDiff < 0) {
-          // Chord got shorter (e.g., F#m -> Fm): pad with spaces to maintain column alignment
           result += ' '.repeat(Math.abs(lengthDiff));
         }
       }
@@ -736,9 +704,6 @@ Pukaarataa Chalaa Huun Main
     // 2. MARKDOWN PARSER & HTML RENDERER
     // ============================================================================
 
-    /**
-     * Extracts YouTube Video ID from full URLs, short URLs, embed URLs, or raw 11-char IDs.
-     */
     function extractYouTubeId(input) {
       if (!input) return '';
       const trimmed = input.trim();
@@ -748,12 +713,6 @@ Pukaarataa Chalaa Huun Main
       return match ? match[1] : '';
     }
 
-    /**
-     * Parses raw Markdown in either:
-     * A) User's clean header format (#Tags line + Key: Value lines before ```chords)
-     * B) Standard YAML frontmatter (--- ... ---)
-     * Also gracefully handles unclosed ```chords fences at EOF and extracts title from filename.
-     */
     function parseMarkdownSong(rawMd, fallbackFilename = '') {
       let text = rawMd.replace(/\r\n/g, '\n').trim();
       let title = '';
@@ -808,14 +767,12 @@ Pukaarataa Chalaa Huun Main
         return false;
       }
 
-      // 1A. Check for optional YAML frontmatter (--- ... ---)
       const fmMatch = text.match(/^---\s*\n([\s\S]*?)\n---\s*\n?([\s\S]*)$/);
       if (fmMatch) {
         const yamlBlock = fmMatch[1];
         body = fmMatch[2].trim();
         yamlBlock.split('\n').forEach(line => applyMetadataLine(line));
       } else {
-        // 1B. Parse header lines above ```chords fence (e.g. #NomadRaga #Mashup, BPM: 95, Time Signature: 3/4, Key: Fm, Swing: No, YouTube Link:)
         const fenceStartMatch = text.match(/```(?:chords|chord|txt)?\s*\n/i);
         const headerSection = fenceStartMatch ? text.slice(0, fenceStartMatch.index) : text.split('\n').slice(0, 12).join('\n');
         const remainingBody = fenceStartMatch ? text.slice(fenceStartMatch.index) : null;
@@ -829,19 +786,16 @@ Pukaarataa Chalaa Huun Main
             consumedLineIndices.add(idx);
             return;
           }
-          // Line of hashtags like "#NomadRaga #SongChords #Mashup"
           if (/^(#[A-Za-z0-9_]+\s*)+$/.test(trimmed)) {
             const lineTags = trimmed.match(/#[A-Za-z0-9_]+/g) || [];
             tags = [...new Set([...tags, ...lineTags])];
             consumedLineIndices.add(idx);
             return;
           }
-          // Metadata "Key: Value" lines
           if (applyMetadataLine(trimmed)) {
             consumedLineIndices.add(idx);
             return;
           }
-          // Markdown H1 title "# Song Title" (not a hashtag tag)
           if (/^#\s+(.+)$/.test(trimmed) && !title) {
             title = trimmed.replace(/^#+\s*/, '').trim();
             consumedLineIndices.add(idx);
@@ -859,7 +813,6 @@ Pukaarataa Chalaa Huun Main
         }
       }
 
-      // 2. Extract any remaining hashtags if none were found yet
       if (tags.length === 0) {
         const foundHashtags = body.match(/(?:^|\s)(#[A-Za-z0-9_]+)/g);
         if (foundHashtags) {
@@ -867,7 +820,6 @@ Pukaarataa Chalaa Huun Main
         }
       }
 
-      // 3. Extract content inside ```chords ... ``` (supports both closed and unclosed fences at EOF)
       let chordContent = body;
       const closedFenceMatch = body.match(/```(?:chords|chord|txt)?\s*\n([\s\S]*?)\n```/i);
       const openFenceMatch = body.match(/```(?:chords|chord|txt)?\s*\n([\s\S]*)$/i);
@@ -894,7 +846,6 @@ Pukaarataa Chalaa Huun Main
         }
       }
 
-      // 4. Fallback title from filename (e.g. "Jeevan Ke Din x Jeena Yahaan.md" -> "Jeevan Ke Din x Jeena Yahaan")
       if (!title && fallbackFilename) {
         title = fallbackFilename.replace(/\.(md|markdown|txt)$/i, '').replace(/[_]+/g, ' ').trim();
       }
@@ -903,7 +854,6 @@ Pukaarataa Chalaa Huun Main
         title = firstLine ? firstLine.trim().slice(0, 50) : 'Untitled Jam';
       }
 
-      // 5. Infer Key from first chord if not explicitly defined
       if (!key) {
         const lines = chordContent.split('\n');
         for (const line of lines) {
@@ -930,9 +880,6 @@ Pukaarataa Chalaa Huun Main
       };
     }
 
-    /**
-     * Escapes HTML special characters safely before injecting chord spans.
-     */
     function escapeHtml(str) {
       return str
         .replace(/&/g, '&amp;')
@@ -940,10 +887,6 @@ Pukaarataa Chalaa Huun Main
         .replace(/>/g, '&gt;');
     }
 
-    /**
-     * Highlights individual chords in warm amber/gold inside an already-transposed chord line
-     * without altering a single space of horizontal alignment.
-     */
     function highlightChordsInLine(transposedLine) {
       return transposedLine.replace(/(\S+)/g, (match) => {
         const cleaned = match.replace(/^[\(\[\|]+|[\)\]\|\.,]+$/g, '');
@@ -954,10 +897,6 @@ Pukaarataa Chalaa Huun Main
       });
     }
 
-    /**
-     * Renders the complete song sheet HTML with monospace alignment, chord highlighting,
-     * and distinct styling for section headers `[Verse 1]` and stage cues `(Music = ...)`.
-     */
     function renderSongSheetHTML(content, transposeSteps, shiftedKey) {
       const preferFlats = shiftedKey.includes('b');
       const lines = content.split('\n');
@@ -965,51 +904,115 @@ Pukaarataa Chalaa Huun Main
       return lines.map(line => {
         const trimmed = line.trim();
 
-        // Empty line -> vertical stanza breather
         if (!trimmed) {
           return `<div class="h-4"></div>`;
         }
 
-        // Section Header e.g. [Verse 1], [Chorus], [Bridge]
         if (/^\[.+\]$/.test(trimmed)) {
           return `<div class="mt-4 mb-1.5 inline-block px-2.5 py-0.5 rounded-md bg-amber-500/15 dark:bg-amber-400/10 border border-amber-500/25 text-amber-800 dark:text-amber-300 font-sans text-xs sm:text-sm font-bold uppercase tracking-wider">${escapeHtml(trimmed)}</div>`;
         }
 
-        // Musical / Instrumental Cue e.g. (Music = song melody)
         if (/^\(.+\)$/.test(trimmed)) {
           return `<div class="my-2 text-stone-500 dark:text-stone-400 italic font-sans text-xs sm:text-sm">${escapeHtml(trimmed)}</div>`;
         }
 
-        // Chord-only line -> preserve exact spaces & highlight in amber/gold
         if (isChordLine(line)) {
           const transposed = transposeChordLinePreservingSpacing(line, transposeSteps, preferFlats);
           return `<div class="chord-line select-all mt-1.5 leading-tight">${highlightChordsInLine(transposed)}</div>`;
         }
 
-        // Lyric line -> preserve spaces so aligned chords above match character-for-character
         return `<div class="chord-line text-stone-800 dark:text-parchment-100 mb-1 leading-snug">${escapeHtml(line)}</div>`;
       }).join('');
     }
 
     // ============================================================================
-    // 3. LOCALSTORAGE STATE & STARTER SONG INITIALIZATION
+    // 3. DUAL-LAYER PERSISTENCE: LOCALSTORAGE + OPTIONAL REPO `songs.json` SYNC
     // ============================================================================
-    function loadLibrary() {
+    function checkStorageAvailability() {
+      try {
+        const testKey = '__nr_storage_test__';
+        localStorage.setItem(testKey, '1');
+        localStorage.removeItem(testKey);
+        state.storageAvailable = true;
+      } catch (e) {
+        state.storageAvailable = false;
+        const banner = document.getElementById('storage-warning-banner');
+        if (banner) banner.classList.remove('hidden');
+      }
+    }
+
+    function loadLibraryFromLocal() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (raw) {
           const parsed = JSON.parse(raw);
           if (Array.isArray(parsed) && parsed.length > 0) {
             state.songs = parsed;
-            state.activeSongId = state.songs[0].id;
-            return;
+            const savedActiveId = localStorage.getItem(ACTIVE_SONG_KEY);
+            state.activeSongId = state.songs.some(s => s.id === savedActiveId)
+              ? savedActiveId
+              : state.songs[0].id;
+            return true;
           }
         }
       } catch (e) {
         console.warn('Could not load songbook from localStorage:', e);
       }
+      return false;
+    }
 
-      // Populate starter song on first load
+    /**
+     * Fetches optional `songs.json` from the same directory (e.g. uploaded to GitHub Pages).
+     * Merges any new/remote songs with localStorage so your full setlist persists everywhere!
+     */
+    async function syncFromRepoSongsJson() {
+      if (!window.location.protocol.startsWith('http')) return;
+      try {
+        const res = await fetch(`./songs.json?v=${Date.now()}`, { cache: 'no-store' });
+        if (!res.ok) return;
+        const remoteSongs = await res.json();
+        if (!Array.isArray(remoteSongs) || remoteSongs.length === 0) return;
+
+        const existingMap = new Map(state.songs.map(s => [s.id, s]));
+        let changed = false;
+
+        remoteSongs.forEach(rSong => {
+          if (!rSong || !rSong.title || !rSong.content) return;
+          const id = rSong.id || 'repo-' + rSong.title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+          if (!existingMap.has(id)) {
+            state.songs.push({ ...rSong, id });
+            changed = true;
+          }
+        });
+
+        // Remove the default starter song if the user's own songs.json was loaded and starter wasn't part of it
+        if (changed && state.songs.length > 1) {
+          const remoteIds = new Set(remoteSongs.map(s => s.id));
+          if (!remoteIds.has('starter-bekaraar-pukaarataa')) {
+            state.songs = state.songs.filter(s => s.id !== 'starter-bekaraar-pukaarataa');
+          }
+        }
+
+        if (changed) {
+          if (!state.songs.some(s => s.id === state.activeSongId)) {
+            state.activeSongId = state.songs[0].id;
+          }
+          saveLibrary();
+          const active = getActiveSong();
+          if (active) {
+            metronome.setBpm(active.bpm || 96, false);
+            metronome.setTimeSignature(active.timeSignature || '4/4', false);
+            metronome.setSwing(Boolean(active.swing), false);
+          }
+          renderSidebar();
+          renderActiveSong();
+        }
+      } catch (e) {
+        // Silently ignore if songs.json isn't present in the repo yet
+      }
+    }
+
+    function initStarterSong() {
       const starter = parseMarkdownSong(STARTER_SONG_MD, 'Bekaraar x Pukaarataa (Mashup).md');
       state.songs = [{
         id: 'starter-bekaraar-pukaarataa',
@@ -1023,8 +1026,12 @@ Pukaarataa Chalaa Huun Main
     function saveLibrary() {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state.songs));
+        if (state.activeSongId) {
+          localStorage.setItem(ACTIVE_SONG_KEY, state.activeSongId);
+        }
       } catch (e) {
         console.warn('Could not save songbook to localStorage:', e);
+        showToast('Browser blocked saving to local storage. Use Backup (songs.json) to save!', 'error');
       }
     }
 
@@ -1067,13 +1074,6 @@ Pukaarataa Chalaa Huun Main
         }
       },
 
-      /**
-       * Schedules a synthesized click on the Web Audio clock:
-       * - Beat 1 (Downbeat): High bright accent (1180 Hz)
-       * - Secondary group accent (e.g. Beat 4 in 6/8, Beat 4/7/10 in 12/8, Beat 4 in 7/8): Medium accent (960 Hz)
-       * - Regular subdivision beat: Crisp woodblock tick (760 Hz)
-       * - Optional swung off-beat subdivision when Swing is enabled
-       */
       scheduleClick(time, beatIndexInBar, isSwingSubdivision = false) {
         if (!this.audioCtx) return;
         const osc = this.audioCtx.createOscillator();
@@ -1104,7 +1104,6 @@ Pukaarataa Chalaa Huun Main
         osc.start(time);
         osc.stop(time + 0.05);
 
-        // Trigger visual beat pip pulse synced with audio on main beats
         if (!isSwingSubdivision) {
           const delayMs = Math.max(0, (time - this.audioCtx.currentTime) * 1000);
           setTimeout(() => {
@@ -1113,7 +1112,7 @@ Pukaarataa Chalaa Huun Main
             pips.forEach((pip, idx) => {
               if (idx === beatIndexInBar) {
                 pip.classList.remove('beat-active');
-                void pip.offsetWidth; // trigger reflow
+                void pip.offsetWidth;
                 pip.classList.add('beat-active');
               }
             });
@@ -1126,11 +1125,9 @@ Pukaarataa Chalaa Huun Main
           const beatInBar = this.beatCount % this.beatsPerMeasure;
           this.scheduleClick(this.nextNoteTime, beatInBar, false);
 
-          // Note duration scales with denominator (4 = quarter note, 8 = eighth note)
           const quarterNoteSec = 60.0 / this.bpm;
           const stepSec = quarterNoteSec * (4 / this.beatUnit);
 
-          // If Swing is enabled on quarter-note beats, schedule triplet off-beat (2/3 of beat)
           if (this.swing && this.beatUnit === 4) {
             this.scheduleClick(this.nextNoteTime + stepSec * (2 / 3), beatInBar, true);
           }
@@ -1141,7 +1138,6 @@ Pukaarataa Chalaa Huun Main
       },
 
       start() {
-        // Ensure any prior interval is strictly cleared before starting a fresh one
         if (this.timerId !== null) {
           clearInterval(this.timerId);
           this.timerId = null;
@@ -1161,7 +1157,6 @@ Pukaarataa Chalaa Huun Main
           this.timerId = null;
         }
         this.beatCount = 0;
-        // Reset visual pips immediately
         document.querySelectorAll('#metro-beat-pips .beat-pip').forEach(pip => {
           pip.classList.remove('beat-active');
         });
@@ -1242,7 +1237,6 @@ Pukaarataa Chalaa Huun Main
       }
 
       if (inlineTimeSigSelect) {
-        // Add custom option if song has a non-standard time signature from YAML
         const exists = Array.from(inlineTimeSigSelect.options).some(opt => opt.value === metronome.timeSignature);
         if (!exists) {
           const opt = document.createElement('option');
@@ -1254,7 +1248,6 @@ Pukaarataa Chalaa Huun Main
         inlineTimeSigSelect.value = metronome.timeSignature;
       }
 
-      // Render visual beat pips matching the time signature numerator (capped at 8 pips for compact dock)
       const visualCount = Math.min(metronome.beatsPerMeasure, 8);
       if (pipsContainer && pipsContainer.children.length !== visualCount) {
         pipsContainer.innerHTML = Array.from({ length: visualCount }, (_, idx) => {
@@ -1280,7 +1273,7 @@ Pukaarataa Chalaa Huun Main
     // ============================================================================
     const autoScroller = {
       isScrolling: false,
-      speed: 1.2, // 0.5x to 5x
+      speed: 1.2,
       rafId: null,
       lastTimestamp: null,
       accumulatedPixels: 0,
@@ -1312,7 +1305,6 @@ Pukaarataa Chalaa Huun Main
         if (!this.isScrolling) return;
         if (this.lastTimestamp !== null) {
           const dtSeconds = (timestamp - this.lastTimestamp) / 1000;
-          // Base speed: 28 px/sec at 1.0x
           const pixelsPerSec = 28 * this.speed;
           this.accumulatedPixels += pixelsPerSec * dtSeconds;
 
@@ -1322,7 +1314,6 @@ Pukaarataa Chalaa Huun Main
             this.accumulatedPixels -= wholePixels;
           }
 
-          // Auto-stop gracefully when bottom of page is reached
           const reachedBottom = (window.innerHeight + window.scrollY) >= (document.documentElement.scrollHeight - 4);
           if (reachedBottom) {
             this.stop();
@@ -1355,7 +1346,6 @@ Pukaarataa Chalaa Huun Main
       }
     }
 
-    // Automatically pause auto-scroll when user manually scrolls via touch or wheel
     window.addEventListener('wheel', () => {
       if (autoScroller.isScrolling) autoScroller.stop();
     }, { passive: true });
@@ -1382,7 +1372,7 @@ Pukaarataa Chalaa Huun Main
       setTimeout(() => {
         el.classList.add('opacity-0', '-translate-y-2');
         setTimeout(() => el.remove(), 300);
-      }, 2800);
+      }, 3200);
     }
 
     function renderSidebar() {
@@ -1391,7 +1381,6 @@ Pukaarataa Chalaa Huun Main
       const countLabel = document.getElementById('song-count-label');
       const clearTagBtn = document.getElementById('clear-tag-btn');
 
-      // Collect all unique tags across the library
       const allTags = new Set();
       state.songs.forEach(s => (s.tags || []).forEach(t => allTags.add(t)));
 
@@ -1416,7 +1405,6 @@ Pukaarataa Chalaa Huun Main
 
       clearTagBtn.classList.toggle('hidden', !state.selectedTag);
 
-      // Filter songs by search query & selected hashtag
       const q = state.searchQuery.toLowerCase().trim();
       const filtered = state.songs.filter(song => {
         const matchesTag = !state.selectedTag || (song.tags || []).includes(state.selectedTag);
@@ -1462,7 +1450,6 @@ Pukaarataa Chalaa Huun Main
         `;
       }).join('');
 
-      // Attach click handlers to song cards
       document.querySelectorAll('.song-select-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           selectSong(btn.dataset.songId);
@@ -1472,14 +1459,14 @@ Pukaarataa Chalaa Huun Main
     }
 
     function selectSong(songId) {
-      // Override & stop whatever is currently playing from the previous song
       metronome.stop();
       autoScroller.stop();
       const ytIframe = document.getElementById('yt-iframe');
       if (ytIframe) ytIframe.src = '';
 
       state.activeSongId = songId;
-      state.transposeSteps = 0; // Reset transpose when switching songs
+      state.transposeSteps = 0;
+      saveLibrary();
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
       const song = getActiveSong();
@@ -1518,7 +1505,6 @@ Pukaarataa Chalaa Huun Main
 
       titleEl.textContent = song.title;
 
-      // Calculate shifted key display (e.g., "Bm -> Am (-2)")
       const baseKey = normalizeChordToken(song.key || 'C');
       const shiftedKey = transposeSingleChord(baseKey, state.transposeSteps, state.transposeSteps < 0);
 
@@ -1531,7 +1517,6 @@ Pukaarataa Chalaa Huun Main
         transposeResetBtn.textContent = sign;
       }
 
-      // Render tags
       tagsEl.innerHTML = (song.tags || []).map(tag => `
         <button data-tag="${escapeHtml(tag)}" class="inline-tag-btn px-2 py-0.5 rounded-md bg-stone-200/70 dark:bg-espresso-800 hover:bg-amber-500/20 text-stone-600 dark:text-stone-300 text-xs font-medium transition">
           ${escapeHtml(tag)}
@@ -1546,12 +1531,10 @@ Pukaarataa Chalaa Huun Main
         });
       });
 
-      // Update YouTube Backing Track player
       ytInput.value = song.youtubeId || '';
       if (song.youtubeId) {
         ytBtnLabel.textContent = 'Track Ready';
         const watchUrl = `https://www.youtube.com/watch?v=${song.youtubeId}`;
-        // Detect sandboxed srcdoc / null-origin environments where YouTube blocks embeds with Error 153
         const isSandboxedOrigin =
           !window.location.protocol.startsWith('http') ||
           window.location.origin === 'null' ||
@@ -1586,7 +1569,6 @@ Pukaarataa Chalaa Huun Main
         if (ytFallbackBar) ytFallbackBar.classList.add('hidden');
       }
 
-      // Render Chord Sheet with exact spacing & font size
       sheetEl.style.fontSize = `${state.fontSizePx}px`;
       sheetEl.innerHTML = renderSongSheetHTML(song.content, state.transposeSteps, shiftedKey);
     }
@@ -1612,7 +1594,6 @@ Pukaarataa Chalaa Huun Main
         divider.classList.add('hidden');
         titleInput.value = song.title || '';
 
-        // Reconstruct clean user-style Markdown header + chords fence if rawMarkdown wasn't stored
         const tagsLine = (song.tags || []).join(' ');
         textarea.value = song.rawMarkdown || `${tagsLine ? tagsLine + '\n\n' : ''}Title: ${song.title}\nBPM: ${song.bpm}\nTime Signature: ${song.timeSignature || '4/4'}\nKey: ${song.key}\nSwing: ${song.swing ? 'Yes' : 'No'}\nYouTube Link: ${song.youtubeId ? `https://youtu.be/${song.youtubeId}` : ''}\n\n\`\`\`chords\n${song.content}\n\`\`\``;
       } else {
@@ -1665,7 +1646,7 @@ Pukaarataa Chalaa Huun Main
         saveLibrary();
         closeImportModal();
         selectSong(lastNewId);
-        showToast(`Imported ${importedCount} song${importedCount > 1 ? 's' : ''}!`);
+        showToast(`Saved ${importedCount} song${importedCount > 1 ? 's' : ''}!`);
       }
     });
 
@@ -1686,7 +1667,6 @@ Pukaarataa Chalaa Huun Main
       if (state.editingSongId) {
         const idx = state.songs.findIndex(s => s.id === state.editingSongId);
         if (idx !== -1) {
-          // If the user didn't change rawMarkdown's title line, preserve explicitTitle over old filename-derived title
           const finalTitle = explicitTitle || parsed.title || state.songs[idx].title;
           state.songs[idx] = {
             ...state.songs[idx],
@@ -1703,7 +1683,7 @@ Pukaarataa Chalaa Huun Main
           metronome.setSwing(Boolean(state.songs[idx].swing), false);
           renderSidebar();
           renderActiveSong();
-          showToast('Song updated!');
+          showToast('Song updated & saved!');
         }
       } else {
         const newSong = {
@@ -1715,24 +1695,23 @@ Pukaarataa Chalaa Huun Main
         saveLibrary();
         closeImportModal();
         selectSong(newSong.id);
-        showToast(`Added "${newSong.title}"`);
+        showToast(`Saved "${newSong.title}"`);
       }
     });
 
-    // Export Library (.json)
+    // Export Library (songs.json — upload directly to GitHub repo to sync across all devices!)
     document.getElementById('export-json-btn').addEventListener('click', () => {
       const dataStr = JSON.stringify(state.songs, null, 2);
       const blob = new Blob([dataStr], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      const dateStamp = new Date().toISOString().slice(0, 10);
       a.href = url;
-      a.download = `nomad-raga-songbook-${dateStamp}.json`;
+      a.download = `songs.json`;
       document.body.appendChild(a);
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      showToast('Songbook backed up to JSON!');
+      showToast('Downloaded songs.json! Upload it to GitHub to sync everywhere.');
     });
 
     // Restore Library (.json)
@@ -1745,7 +1724,6 @@ Pukaarataa Chalaa Huun Main
         if (!Array.isArray(importedSongs) || importedSongs.length === 0) {
           throw new Error('Invalid JSON format');
         }
-        // Merge avoiding duplicate IDs
         const existingIds = new Set(state.songs.map(s => s.id));
         let added = 0;
         importedSongs.forEach(s => {
@@ -1928,7 +1906,6 @@ Pukaarataa Chalaa Huun Main
       const song = getActiveSong();
       if (!song) return;
       const titleDisplay = document.getElementById('song-title-display');
-      const renameBtn = document.getElementById('rename-title-btn');
       const titleInput = document.getElementById('song-title-input');
 
       titleDisplay.parentElement.classList.add('hidden');
@@ -1988,7 +1965,9 @@ Pukaarataa Chalaa Huun Main
       } else {
         html.classList.add('dark');
       }
-      localStorage.setItem(THEME_KEY, theme);
+      try {
+        localStorage.setItem(THEME_KEY, theme);
+      } catch (e) {}
     }
 
     document.getElementById('theme-toggle-btn').addEventListener('click', () => {
@@ -1999,11 +1978,20 @@ Pukaarataa Chalaa Huun Main
     // ============================================================================
     // INITIALIZE APPLICATION ON WINDOW LOAD
     // ============================================================================
-    window.addEventListener('DOMContentLoaded', () => {
-      const savedTheme = localStorage.getItem(THEME_KEY) || 'dark';
+    window.addEventListener('DOMContentLoaded', async () => {
+      checkStorageAvailability();
+
+      let savedTheme = 'dark';
+      try {
+        savedTheme = localStorage.getItem(THEME_KEY) || 'dark';
+      } catch (e) {}
       applyTheme(savedTheme);
 
-      loadLibrary();
+      const hasLocalSongs = loadLibraryFromLocal();
+      if (!hasLocalSongs) {
+        initStarterSong();
+      }
+
       const initialSong = getActiveSong();
       if (initialSong) {
         metronome.setBpm(initialSong.bpm || 96, false);
@@ -2012,6 +2000,9 @@ Pukaarataa Chalaa Huun Main
       }
       renderSidebar();
       renderActiveSong();
+
+      // Also check for a `songs.json` file hosted alongside `index.html` on GitHub Pages
+      await syncFromRepoSongsJson();
     });
   </script>
 </body>
