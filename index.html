@@ -2,39 +2,35 @@
 <html lang="en" class="dark">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Nomad Raga Digital Songbook | jam.nomadraga.live</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nomad Raga Digital Songbook — jam.nomadraga.live</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
   <script>
     tailwind.config = {
       darkMode: 'class',
       theme: {
         extend: {
           fontFamily: {
-            sans: ['Inter', 'sans-serif'],
-            mono: ['JetBrains Mono', 'monospace'],
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace']
           },
           colors: {
             espresso: {
-              950: '#120f0d',
+              950: '#120e0c',
               900: '#1a1512',
-              850: '#211b17',
-              800: '#29221d',
-              700: '#382f28',
-              600: '#4d4138',
+              850: '#221c18',
+              800: '#2b231e',
+              700: '#3a3029',
+              600: '#4d4037'
             },
             parchment: {
-              50: '#fcfaf7',
-              100: '#f5f0e8',
-              200: '#e8dfd1',
-              300: '#d5c7b2',
-            },
-            amberchord: {
-              light: '#b45309',
-              dark: '#fbbf24',
+              50: '#fdfbf7',
+              100: '#f7f2e8',
+              200: '#ede4d3',
+              300: '#dfd1b8'
             }
           }
         }
@@ -42,6 +38,10 @@
     };
   </script>
   <style>
+    .chord-sheet-container {
+      font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-variant-ligatures: none;
+    }
     ::-webkit-scrollbar {
       width: 6px;
       height: 6px;
@@ -50,36 +50,12 @@
       background: transparent;
     }
     ::-webkit-scrollbar-thumb {
-      background: rgba(161, 136, 114, 0.3);
+      background: rgba(180, 140, 90, 0.35);
       border-radius: 9999px;
     }
     ::-webkit-scrollbar-thumb:hover {
-      background: rgba(161, 136, 114, 0.55);
+      background: rgba(217, 119, 6, 0.65);
     }
-
-    .chord-sheet-container {
-      font-family: 'JetBrains Mono', monospace;
-      line-height: 1.45;
-      tab-size: 4;
-      -moz-tab-size: 4;
-    }
-    .chord-line {
-      white-space: pre;
-      overflow-x: auto;
-      scrollbar-width: none;
-    }
-    .chord-line::-webkit-scrollbar {
-      display: none;
-    }
-
-    @keyframes beatPulse {
-      0% { transform: scale(1.35); opacity: 1; }
-      100% { transform: scale(1); opacity: 0.35; }
-    }
-    .beat-active {
-      animation: beatPulse 0.18s ease-out forwards;
-    }
-
     input[type="range"] {
       -webkit-appearance: none;
       appearance: none;
@@ -87,30 +63,27 @@
       cursor: pointer;
     }
     input[type="range"]::-webkit-slider-runnable-track {
-      height: 5px;
-      border-radius: 999px;
-      background: rgba(217, 119, 6, 0.3);
+      height: 6px;
+      border-radius: 9999px;
+      background: rgba(217, 119, 6, 0.25);
     }
     input[type="range"]::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
       height: 16px;
       width: 16px;
-      border-radius: 50%;
-      background: #f59e0b;
-      margin-top: -5.5px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+      border-radius: 9999px;
+      background: #d97706;
+      margin-top: -5px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
     }
   </style>
 </head>
-<body class="bg-parchment-50 text-stone-900 dark:bg-espresso-950 dark:text-parchment-100 transition-colors duration-200 min-h-screen flex flex-col selection:bg-amber-500/30 selection:text-amber-200">
-
-  <!-- Toast Notification Banner -->
-  <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+<body class="bg-parchment-50 text-stone-900 dark:bg-espresso-950 dark:text-parchment-100 font-sans antialiased transition-colors duration-200 min-h-screen flex flex-col">
 
   <!-- Storage Warning Banner -->
   <div id="storage-warning-banner" class="hidden bg-amber-600 text-white text-xs px-4 py-2 text-center font-medium">
-    Browser storage is restricted in this tab/iframe—connect <strong>Drive Sync</strong> or use <strong>Backup (songs.json)</strong> to keep your changes.
+    Browser cache is restricted in this tab/iframe—setlist will load live from Google Drive.
   </div>
 
   <!-- Top Header Bar -->
@@ -144,29 +117,20 @@
           <button id="font-inc-btn" title="Increase Font Size" class="px-2.5 py-1.5 text-xs font-mono font-bold rounded-lg hover:bg-white/60 dark:hover:bg-espresso-700 transition">A+</button>
         </div>
 
-        <!-- Import .md Button -->
-        <button id="open-import-btn" class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs sm:text-sm font-semibold shadow-sm transition active:scale-95">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+        <!-- Refresh Setlist from Google Drive Button -->
+        <button id="refresh-setlist-btn" title="Refresh Setlist from Google Drive" class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-semibold shadow-sm transition active:scale-95">
+          <svg id="refresh-setlist-icon" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
-          <span>Import .md</span>
+          <span>Refresh Setlist</span>
         </button>
 
-        <!-- Export songs.json Button -->
-        <button id="export-json-btn" title="Download songs.json backup" class="p-2 sm:px-3 sm:py-2 rounded-xl bg-parchment-200/80 dark:bg-espresso-800 hover:bg-stone-300/70 dark:hover:bg-espresso-700 text-stone-700 dark:text-parchment-200 text-xs sm:text-sm font-medium transition flex items-center gap-1.5 active:scale-95">
+        <!-- Visitor Comment / Feedback Button -->
+        <button id="open-comment-btn" title="Send a Comment or Song Request" class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs sm:text-sm font-semibold shadow-sm transition active:scale-95">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
           </svg>
-          <span class="hidden sm:inline">Backup</span>
-        </button>
-
-        <!-- Google Drive Cloud Sync Button -->
-        <button id="open-gdrive-btn" title="Sync Songbook with Google Drive Folder" class="p-2 sm:px-3 sm:py-2 rounded-xl bg-parchment-200/80 dark:bg-espresso-800 hover:bg-emerald-500/20 text-stone-700 dark:text-parchment-200 text-xs sm:text-sm font-medium transition flex items-center gap-1.5 active:scale-95 border border-transparent">
-          <span id="gdrive-status-dot" class="w-2 h-2 rounded-full bg-stone-400"></span>
-          <svg class="w-4 h-4 text-emerald-600 dark:text-emerald-400" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M7.71 3.5L1.15 15l3.43 6 6.55-11.5L7.71 3.5zm1.73 0l6.56 11.5h6.85L16.29 3.5H9.44zm5.41 12.5H2.57l3.43 5h12.28l3.43-5h-6.86z"/>
-          </svg>
-          <span class="hidden md:inline">Drive Sync</span>
+          <span class="hidden sm:inline">Comment</span>
         </button>
 
         <!-- Theme Toggle -->
@@ -182,40 +146,60 @@
     </div>
   </header>
 
-  <!-- Main Workspace Layout -->
+  <!-- Main Workspace Container -->
   <div class="flex-1 flex relative max-w-7xl w-full mx-auto">
 
     <!-- Mobile Backdrop for Sidebar -->
-    <div id="sidebar-backdrop" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-30 hidden lg:hidden"></div>
+    <div id="sidebar-backdrop" class="fixed inset-0 bg-black/60 z-30 hidden lg:hidden backdrop-blur-xs"></div>
 
-    <!-- Collapsible Song Library Sidebar / Drawer -->
-    <aside id="library-sidebar" class="fixed lg:sticky top-0 lg:top-[57px] left-0 z-40 lg:z-20 h-screen lg:h-[calc(100vh-57px)] w-80 max-w-[85vw] bg-parchment-100 dark:bg-espresso-900 border-r border-stone-200 dark:border-espresso-700/80 flex flex-col transition-transform duration-200 -translate-x-full lg:translate-x-0 shrink-0">
-      <div class="p-3.5 border-b border-stone-200 dark:border-espresso-800 flex items-center justify-between lg:hidden">
-        <span class="font-bold text-sm tracking-wide uppercase text-amber-700 dark:text-amber-400">Setlist & Library</span>
-        <button id="close-sidebar-btn" class="p-2 rounded-lg hover:bg-stone-200 dark:hover:bg-espresso-800">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-
-      <!-- Search Input -->
-      <div class="p-3.5 space-y-3 border-b border-stone-200 dark:border-espresso-800">
-        <div class="relative">
-          <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          <input id="search-input" type="text" placeholder="Search songs, lyrics, keys..." class="w-full pl-9 pr-8 py-2 rounded-xl bg-white dark:bg-espresso-850 border border-stone-300 dark:border-espresso-700 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/60 placeholder-stone-400 dark:placeholder-stone-500" />
-          <button id="clear-search-btn" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-200 text-xs font-bold">✕</button>
+    <!-- Collapsible Song Library Sidebar -->
+    <aside id="library-sidebar" class="fixed lg:sticky top-0 lg:top-[57px] left-0 z-40 lg:z-20 h-screen lg:h-[calc(100vh-57px)] w-80 max-w-[85vw] bg-parchment-100 dark:bg-espresso-900 border-r border-stone-200 dark:border-espresso-800 flex flex-col transform -translate-x-full lg:translate-x-0 transition-transform duration-200 ease-out shrink-0">
+      <div class="p-3.5 border-b border-stone-200 dark:border-espresso-800 space-y-2.5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400">Setlist & Library</span>
+          <button id="close-sidebar-btn" class="lg:hidden p-1.5 rounded-lg hover:bg-stone-200 dark:hover:bg-espresso-800 text-stone-500">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
 
-        <!-- Clickable Hashtag Filter Pills -->
-        <div>
-          <div class="flex items-center justify-between mb-1.5">
-            <span class="text-[11px] font-semibold uppercase tracking-wider text-stone-500 dark:text-stone-400">Filter by Tag</span>
-            <button id="clear-tag-btn" class="hidden text-[11px] text-amber-600 dark:text-amber-400 hover:underline">Reset</button>
+        <!-- Instant Search Input -->
+        <div class="relative">
+          <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z" />
+          </svg>
+          <input id="search-input" type="text" placeholder="Search title, key, lyrics..." class="w-full pl-9 pr-8 py-2 rounded-xl bg-white dark:bg-espresso-950 border border-stone-300 dark:border-espresso-700 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/70" />
+          <button id="clear-search-btn" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 dark:hover:text-stone-200">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Key & Time Signature Setlist Filters -->
+        <div class="grid grid-cols-2 gap-1.5">
+          <div>
+            <label for="filter-key-select" class="block text-[10px] font-semibold uppercase tracking-wider text-stone-500 dark:text-stone-400 mb-1">Key</label>
+            <select id="filter-key-select" class="w-full px-2.5 py-1.5 rounded-xl bg-white dark:bg-espresso-950 border border-stone-300 dark:border-espresso-700 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-amber-500/70">
+              <option value="">All Keys</option>
+            </select>
           </div>
-          <div id="tag-pills-container" class="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto"></div>
+          <div>
+            <label for="filter-timesig-select" class="block text-[10px] font-semibold uppercase tracking-wider text-stone-500 dark:text-stone-400 mb-1">Time Sig</label>
+            <select id="filter-timesig-select" class="w-full px-2.5 py-1.5 rounded-xl bg-white dark:bg-espresso-950 border border-stone-300 dark:border-espresso-700 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-amber-500/70">
+              <option value="">All Times</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Tag Filter Pills -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-[11px] font-medium text-stone-500 dark:text-stone-400">Filter by Tag</span>
+            <button id="clear-filters-btn" class="hidden text-[11px] font-semibold text-amber-700 dark:text-amber-400 hover:underline">Clear All Filters</button>
+          </div>
+          <div id="tag-pills-container" class="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-1"></div>
         </div>
       </div>
 
@@ -226,13 +210,13 @@
       <div class="p-3 border-t border-stone-200 dark:border-espresso-800 space-y-2 text-xs text-stone-500 dark:text-stone-400">
         <div class="flex items-center justify-between">
           <span id="song-count-label">1 song</span>
-          <label class="cursor-pointer text-amber-700 dark:text-amber-400 hover:underline font-medium">
-            Restore .json
-            <input id="restore-json-input" type="file" accept=".json,application/json" class="hidden" />
-          </label>
+          <button id="sidebar-refresh-btn" class="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400 hover:underline font-semibold">
+            <span id="gdrive-status-dot" class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span>Sync Drive</span>
+          </button>
         </div>
-        <p class="text-[11px] leading-snug text-stone-400 dark:text-stone-500">
-          Connect <strong>Drive Sync</strong> in the top bar to sync <code>.md</code> files directly with your Google Drive folder across all browsers.
+        <p id="gdrive-sync-status-label" class="text-[11px] leading-snug text-stone-400 dark:text-stone-500">
+          Synced with Nomad Raga Google Drive setlist.
         </p>
       </div>
     </aside>
@@ -241,7 +225,7 @@
     <main id="song-stage" class="flex-1 min-w-0 pb-36 px-3 sm:px-6 lg:px-10 pt-5">
       <div class="max-w-3xl mx-auto">
 
-        <!-- Song Header Metadata Card -->
+        <!-- Song Header Metadata Card (Read-Only) -->
         <div class="rounded-2xl bg-parchment-100/90 dark:bg-espresso-900/90 border border-stone-200 dark:border-espresso-700/80 p-4 sm:p-6 shadow-sm mb-5">
           <div class="flex flex-wrap items-start justify-between gap-3">
             <div class="min-w-0 flex-1">
@@ -250,30 +234,22 @@
                   Key: Bm
                 </span>
 
-                <div class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-stone-200/80 dark:bg-espresso-800 border border-stone-300/70 dark:border-espresso-700 text-xs sm:text-sm font-mono">
+                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-stone-200/80 dark:bg-espresso-800 border border-stone-300/70 dark:border-espresso-700 text-xs sm:text-sm font-mono">
                   <span class="text-stone-500 dark:text-stone-400">BPM:</span>
-                  <input id="inline-bpm-input" type="number" min="30" max="300" value="96" class="w-12 bg-transparent font-bold text-stone-900 dark:text-parchment-100 focus:outline-none focus:ring-1 focus:ring-amber-500 rounded px-1 text-center" />
-                </div>
+                  <span id="readonly-bpm-display" class="font-bold text-stone-900 dark:text-parchment-100">96</span>
+                </span>
 
-                <div class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-stone-200/80 dark:bg-espresso-800 border border-stone-300/70 dark:border-espresso-700 text-xs sm:text-sm font-mono">
+                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-stone-200/80 dark:bg-espresso-800 border border-stone-300/70 dark:border-espresso-700 text-xs sm:text-sm font-mono">
                   <span class="text-stone-500 dark:text-stone-400">Time:</span>
-                  <select id="inline-timesig-select" title="Song Time Signature" class="bg-transparent font-bold text-stone-900 dark:text-parchment-100 focus:outline-none focus:ring-1 focus:ring-amber-500 rounded px-0.5 cursor-pointer">
-                    <option value="4/4" class="bg-parchment-50 dark:bg-espresso-900">4/4</option>
-                    <option value="3/4" class="bg-parchment-50 dark:bg-espresso-900">3/4</option>
-                    <option value="6/8" class="bg-parchment-50 dark:bg-espresso-900">6/8</option>
-                    <option value="2/4" class="bg-parchment-50 dark:bg-espresso-900">2/4</option>
-                    <option value="5/4" class="bg-parchment-50 dark:bg-espresso-900">5/4</option>
-                    <option value="7/8" class="bg-parchment-50 dark:bg-espresso-900">7/8</option>
-                    <option value="12/8" class="bg-parchment-50 dark:bg-espresso-900">12/8</option>
-                  </select>
-                </div>
+                  <span id="readonly-timesig-display" class="font-bold text-stone-900 dark:text-parchment-100">4/4</span>
+                </span>
 
-                <button id="inline-swing-btn" title="Toggle Swing Feel (Triplet Subdivision)" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-stone-200/80 dark:bg-espresso-800 border border-stone-300/70 dark:border-espresso-700 text-xs sm:text-sm font-mono text-stone-600 dark:text-stone-300 hover:border-amber-500/50 transition">
+                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-stone-200/80 dark:bg-espresso-800 border border-stone-300/70 dark:border-espresso-700 text-xs sm:text-sm font-mono text-stone-600 dark:text-stone-300">
                   <span class="text-stone-500 dark:text-stone-400">Swing:</span>
-                  <span id="inline-swing-label" class="font-bold">No</span>
-                </button>
+                  <span id="readonly-swing-label" class="font-bold">No</span>
+                </span>
 
-                <button id="toggle-yt-btn" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-700 dark:text-red-400 text-xs font-semibold transition">
+                <button id="toggle-yt-btn" class="hidden inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-700 dark:text-red-400 text-xs font-semibold transition">
                   <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
                   </svg>
@@ -281,48 +257,22 @@
                 </button>
               </div>
 
-              <div class="group/title flex items-center gap-2">
-                <h2 id="song-title-display" title="Click to rename song" class="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-stone-900 dark:text-parchment-50 leading-snug cursor-pointer hover:text-amber-700 dark:hover:text-amber-300 transition">
-                  Bekaraar x Pukaarataa (Mashup)
-                </h2>
-                <button id="rename-title-btn" title="Rename Song" class="opacity-60 group-hover/title:opacity-100 p-1.5 rounded-lg hover:bg-amber-500/20 text-stone-500 dark:text-stone-400 hover:text-amber-600 dark:hover:text-amber-400 transition shrink-0">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                  </svg>
-                </button>
-              </div>
-              <input id="song-title-input" type="text" class="hidden w-full text-xl sm:text-2xl md:text-3xl font-bold tracking-tight bg-white dark:bg-espresso-850 text-stone-900 dark:text-parchment-50 border border-amber-500 rounded-xl px-2.5 py-1 focus:outline-none focus:ring-2 focus:ring-amber-500" />
+              <h2 id="song-title-display" class="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-stone-900 dark:text-parchment-50 leading-snug">
+                Bekaraar x Pukaarataa (Mashup)
+              </h2>
 
               <div id="song-tags-display" class="flex flex-wrap gap-1.5 mt-2.5"></div>
             </div>
 
-            <!-- Song Utility Actions -->
-            <div class="flex items-center gap-1.5">
-              <div class="flex md:hidden items-center bg-parchment-200/80 dark:bg-espresso-800 rounded-xl p-0.5">
-                <button id="font-dec-btn-mobile" class="px-2.5 py-1.5 text-xs font-mono font-bold rounded-lg">A-</button>
-                <button id="font-inc-btn-mobile" class="px-2.5 py-1.5 text-xs font-mono font-bold rounded-lg">A+</button>
-              </div>
-              <button id="edit-song-btn" title="Edit Song Markdown" class="p-2 rounded-xl bg-parchment-200/80 dark:bg-espresso-800 hover:bg-amber-500/20 text-stone-600 dark:text-stone-300 transition">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-              </button>
-              <button id="delete-song-btn" title="Delete Song" class="p-2 rounded-xl bg-parchment-200/80 dark:bg-espresso-800 hover:bg-red-500/20 text-stone-600 dark:text-stone-300 hover:text-red-500 transition">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </button>
+            <!-- Mobile Font Size Controls -->
+            <div class="flex md:hidden items-center bg-parchment-200/80 dark:bg-espresso-800 rounded-xl p-0.5">
+              <button id="font-dec-btn-mobile" class="px-2.5 py-1.5 text-xs font-mono font-bold rounded-lg">A-</button>
+              <button id="font-inc-btn-mobile" class="px-2.5 py-1.5 text-xs font-mono font-bold rounded-lg">A+</button>
             </div>
           </div>
 
-          <!-- Collapsible YouTube Backing Track Drawer -->
+          <!-- Collapsible YouTube Backing Track Drawer (Read-Only) -->
           <div id="youtube-drawer" class="hidden mt-4 pt-4 border-t border-stone-200 dark:border-espresso-800 space-y-3">
-            <div class="flex flex-col sm:flex-row gap-2">
-              <input id="yt-url-input" type="text" placeholder="Paste YouTube URL or Video ID (e.g. dQw4w9WgXcQ)..." class="flex-1 px-3 py-2 rounded-xl bg-white dark:bg-espresso-850 border border-stone-300 dark:border-espresso-700 text-xs sm:text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-500" />
-              <button id="save-yt-btn" class="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs sm:text-sm font-semibold transition shrink-0">
-                Load Track
-              </button>
-            </div>
             <div id="yt-embed-wrapper" class="hidden relative w-full pt-[56.25%] rounded-xl overflow-hidden bg-black border border-espresso-700">
               <iframe id="yt-iframe" class="absolute inset-0 w-full h-full" src="" title="YouTube Backing Track" frameborder="0" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
             </div>
@@ -336,7 +286,6 @@
                     </svg>
                   </div>
                   <span class="text-white font-bold text-sm sm:text-base">Open Backing Track on YouTube</span>
-                  <span class="text-xs text-stone-300 mt-1 max-w-md">Sandboxed preview blocks YouTube's embed Referer header (Error 153). Inline playback works automatically when hosted on jam.nomadraga.live.</span>
                 </div>
               </a>
             </div>
@@ -354,6 +303,17 @@
 
         <!-- Rendered Monospace Chord & Lyric Sheet -->
         <div id="chord-sheet-output" class="chord-sheet-container rounded-2xl bg-white dark:bg-espresso-900/60 border border-stone-200/90 dark:border-espresso-800 p-4 sm:p-7 shadow-xs text-[14px] sm:text-[16px] select-text"></div>
+
+        <!-- Visitor Comment Prompt Strip -->
+        <div class="mt-6 rounded-2xl bg-parchment-100/80 dark:bg-espresso-900/70 border border-stone-200 dark:border-espresso-800 p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div class="text-center sm:text-left">
+            <p class="text-sm font-semibold text-stone-800 dark:text-parchment-100">Have a comment, chord correction, or song request?</p>
+            <p class="text-xs text-stone-500 dark:text-stone-400">Send a quick note straight to Nomad Raga (<code>nomadraga10@gmail.com</code>).</p>
+          </div>
+          <button id="footer-comment-btn" class="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs sm:text-sm font-semibold shadow-sm transition shrink-0">
+            Leave a Comment
+          </button>
+        </div>
 
       </div>
     </main>
@@ -374,21 +334,17 @@
           <button id="transpose-up-btn" title="Transpose +1 Semitone" class="w-8 h-8 rounded-lg bg-white dark:bg-espresso-800 hover:bg-amber-500/20 font-mono font-bold text-sm flex items-center justify-center shadow-2xs active:scale-90 transition">+1</button>
         </div>
 
-        <!-- 2. Web Audio Metronome Controls -->
-        <div class="flex items-center gap-1.5 bg-parchment-200/80 dark:bg-espresso-900/90 px-2.5 py-1 rounded-xl border border-stone-300/60 dark:border-espresso-700">
-          <button id="metro-toggle-btn" title="Start/Stop Metronome" class="flex items-center gap-2 pr-1.5 py-1 rounded-lg font-semibold text-xs text-stone-800 dark:text-parchment-100 hover:text-amber-500 transition active:scale-95">
+        <!-- 2. Web Audio Metronome Controls (Read-Only Tempo) -->
+        <div class="flex items-center gap-1.5 bg-parchment-200/80 dark:bg-espresso-900/90 px-3 py-1.5 rounded-xl border border-stone-300/60 dark:border-espresso-700">
+          <button id="metro-toggle-btn" title="Start/Stop Metronome" class="flex items-center gap-2 py-0.5 rounded-lg font-semibold text-xs text-stone-800 dark:text-parchment-100 hover:text-amber-500 transition active:scale-95">
             <span id="metro-beat-pips" class="inline-flex items-center gap-1">
               <span class="w-2.5 h-2.5 rounded-full bg-amber-500 opacity-35 inline-block"></span>
             </span>
             <span id="metro-status-text" class="font-mono whitespace-nowrap">96 · 4/4</span>
           </button>
-          <div class="flex items-center gap-1 border-l border-stone-300 dark:border-espresso-700 pl-1.5">
-            <button id="metro-dec-btn" title="Decrease BPM" class="w-7 h-7 rounded-lg bg-white dark:bg-espresso-800 hover:bg-amber-500/20 font-bold text-xs flex items-center justify-center active:scale-90 transition">-</button>
-            <button id="metro-inc-btn" title="Increase BPM" class="w-7 h-7 rounded-lg bg-white dark:bg-espresso-800 hover:bg-amber-500/20 font-bold text-xs flex items-center justify-center active:scale-90 transition">+</button>
-          </div>
         </div>
 
-        <!-- 3. Smooth Auto-Scroll Controls -->
+        <!-- 3. Smooth Auto-Scroll Controls (50% Reduced Base Speed) -->
         <div class="flex items-center gap-2 bg-parchment-200/80 dark:bg-espresso-900/90 px-2.5 py-1 rounded-xl border border-stone-300/60 dark:border-espresso-700 flex-1 sm:flex-initial justify-between sm:justify-start">
           <button id="scroll-toggle-btn" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold shadow-xs transition active:scale-95 shrink-0">
             <svg id="scroll-play-icon" class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
@@ -400,8 +356,8 @@
             <span id="scroll-btn-label">Scroll</span>
           </button>
           <div class="flex items-center gap-1.5 min-w-[95px] sm:min-w-[115px]">
-            <input id="scroll-speed-slider" type="range" min="0.5" max="5" step="0.1" value="1.2" class="w-full" title="Auto-scroll Speed" />
-            <span id="scroll-speed-label" class="font-mono text-[11px] font-semibold text-stone-600 dark:text-stone-300 w-8 text-right">1.2x</span>
+            <input id="scroll-speed-slider" type="range" min="0.25" max="3" step="0.05" value="0.6" class="w-full" title="Auto-scroll Speed" />
+            <span id="scroll-speed-label" class="font-mono text-[11px] font-semibold text-stone-600 dark:text-stone-300 w-9 text-right">0.6x</span>
           </div>
         </div>
 
@@ -409,185 +365,59 @@
     </div>
   </div>
 
-  <!-- Import / Edit Markdown Modal -->
-  <div id="import-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-3 sm:p-5 bg-black/70 backdrop-blur-xs">
-    <div class="bg-parchment-50 dark:bg-espresso-900 border border-stone-300 dark:border-espresso-700 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+  <!-- Visitor Comment / Feedback Modal (Emails nomadraga10@gmail.com) -->
+  <div id="comment-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-3 sm:p-5 bg-black/70 backdrop-blur-xs">
+    <div class="bg-parchment-50 dark:bg-espresso-900 border border-stone-300 dark:border-espresso-700 rounded-2xl w-full max-w-lg flex flex-col shadow-2xl overflow-hidden">
       <div class="px-5 py-4 border-b border-stone-200 dark:border-espresso-800 flex items-center justify-between">
         <div>
-          <h3 id="modal-heading" class="text-lg font-bold">Import .md Song(s)</h3>
-          <p class="text-xs text-stone-500 dark:text-stone-400">Supports YAML frontmatter, <code>```chords</code> fences, or raw chord/lyric sheets.</p>
+          <h3 class="text-base sm:text-lg font-bold">Send a Comment to Nomad Raga</h3>
+          <p class="text-xs text-stone-500 dark:text-stone-400">Your note will be addressed to <strong>nomadraga10@gmail.com</strong>.</p>
         </div>
-        <button id="close-modal-btn" class="p-2 rounded-xl hover:bg-stone-200 dark:hover:bg-espresso-800 transition">
+        <button id="close-comment-modal-btn" class="p-2 rounded-xl hover:bg-stone-200 dark:hover:bg-espresso-800 transition">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
       </div>
 
-      <div class="p-5 overflow-y-auto space-y-4 flex-1">
-        <div id="file-upload-section">
-          <label class="flex flex-col items-center justify-center w-full p-5 border-2 border-dashed border-amber-500/50 hover:border-amber-500 rounded-2xl bg-amber-500/5 hover:bg-amber-500/10 cursor-pointer transition text-center">
-            <svg class="w-8 h-8 text-amber-600 dark:text-amber-400 mb-2" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-            </svg>
-            <span class="text-sm font-semibold text-stone-800 dark:text-parchment-100">Click to select .md file(s) from your device</span>
-            <span class="text-xs text-stone-500 dark:text-stone-400 mt-0.5">Batch upload supported — select multiple Markdown files at once</span>
-            <input id="md-file-input" type="file" accept=".md,.markdown,.txt" multiple class="hidden" />
-          </label>
-        </div>
-
-        <div id="modal-divider" class="relative flex py-1 items-center">
-          <div class="flex-grow border-t border-stone-300 dark:border-espresso-700"></div>
-          <span class="flex-shrink mx-3 text-xs uppercase tracking-wider text-stone-400">or paste / edit Markdown</span>
-          <div class="flex-grow border-t border-stone-300 dark:border-espresso-700"></div>
-        </div>
-
-        <div>
-          <label for="md-title-input" class="block text-xs font-semibold uppercase tracking-wider text-stone-500 dark:text-stone-400 mb-1">Song Title</label>
-          <input id="md-title-input" type="text" placeholder="Leave blank to auto-detect from filename or # Heading..." class="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-espresso-950 border border-stone-300 dark:border-espresso-700 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-amber-500" />
-        </div>
-
-        <div>
-          <textarea id="md-paste-textarea" rows="12" placeholder="#NomadRaga #SongChords #Mashup&#10;&#10;BPM: 95&#10;Time Signature: 3/4&#10;Key: Fm&#10;Swing: No&#10;YouTube Link: &#10;&#10;```chords&#10;[Verse 1]&#10;Fm          D#&#10;Lyrics go right beneath chords..." class="w-full p-3.5 rounded-xl bg-white dark:bg-espresso-950 border border-stone-300 dark:border-espresso-700 font-mono text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 leading-relaxed"></textarea>
-        </div>
-      </div>
-
-      <div class="px-5 py-3.5 border-t border-stone-200 dark:border-espresso-800 flex items-center justify-end gap-2 bg-parchment-100/60 dark:bg-espresso-950/60">
-        <button id="cancel-modal-btn" class="px-4 py-2 rounded-xl bg-stone-200 dark:bg-espresso-800 hover:bg-stone-300 dark:hover:bg-espresso-700 text-xs sm:text-sm font-semibold transition">Cancel</button>
-        <button id="save-md-btn" class="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs sm:text-sm font-semibold shadow-sm transition">Save Song</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Confirmation Modal -->
-  <div id="confirm-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
-    <div class="bg-parchment-50 dark:bg-espresso-900 border border-stone-300 dark:border-espresso-700 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4">
-      <h4 id="confirm-title" class="text-base font-bold">Delete Song?</h4>
-      <p id="confirm-message" class="text-sm text-stone-600 dark:text-stone-300">Are you sure you want to remove this song from your library?</p>
-      <div class="flex justify-end gap-2 pt-1">
-        <button id="confirm-cancel-btn" class="px-4 py-2 rounded-xl bg-stone-200 dark:bg-espresso-800 text-xs sm:text-sm font-semibold">Cancel</button>
-        <button id="confirm-ok-btn" class="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs sm:text-sm font-semibold">Delete</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Google Drive Sync Setup Modal -->
-  <div id="gdrive-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-3 sm:p-5 bg-black/70 backdrop-blur-xs">
-    <div class="bg-parchment-50 dark:bg-espresso-900 border border-stone-300 dark:border-espresso-700 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
-      <div class="px-5 py-4 border-b border-stone-200 dark:border-espresso-800 flex items-center justify-between">
-        <div class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M7.71 3.5L1.15 15l3.43 6 6.55-11.5L7.71 3.5zm1.73 0l6.56 11.5h6.85L16.29 3.5H9.44zm5.41 12.5H2.57l3.43 5h12.28l3.43-5h-6.86z"/>
-            </svg>
+      <div class="p-5 space-y-3.5 text-xs sm:text-sm">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="comment-visitor-name" class="block text-xs font-semibold uppercase tracking-wider text-stone-500 dark:text-stone-400 mb-1">Your Name (optional)</label>
+            <input id="comment-visitor-name" type="text" placeholder="e.g. Aarav / Jammer" class="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-espresso-950 border border-stone-300 dark:border-espresso-700 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500" />
           </div>
           <div>
-            <h3 class="text-base sm:text-lg font-bold">Google Drive Folder Sync (.md Files)</h3>
-            <p class="text-xs text-stone-500 dark:text-stone-400">Reads &amp; writes real <code>.md</code> files directly in your shared Google Drive folder.</p>
+            <label for="comment-visitor-email" class="block text-xs font-semibold uppercase tracking-wider text-stone-500 dark:text-stone-400 mb-1">Your Email (optional)</label>
+            <input id="comment-visitor-email" type="email" placeholder="you@example.com" class="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-espresso-950 border border-stone-300 dark:border-espresso-700 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500" />
           </div>
         </div>
-        <button id="close-gdrive-modal-btn" class="p-2 rounded-xl hover:bg-stone-200 dark:hover:bg-espresso-800 transition">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+
+        <div>
+          <label for="comment-song-topic" class="block text-xs font-semibold uppercase tracking-wider text-stone-500 dark:text-stone-400 mb-1">Song / Topic</label>
+          <input id="comment-song-topic" type="text" class="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-espresso-950 border border-stone-300 dark:border-espresso-700 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500" />
+        </div>
+
+        <div>
+          <label for="comment-message-text" class="block text-xs font-semibold uppercase tracking-wider text-stone-500 dark:text-stone-400 mb-1">Your Comment or Song Request</label>
+          <textarea id="comment-message-text" rows="4" placeholder="Write your feedback, chord note, or mashup request..." class="w-full p-3.5 rounded-xl bg-white dark:bg-espresso-950 border border-stone-300 dark:border-espresso-700 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 leading-relaxed"></textarea>
+        </div>
+
+        <!-- Recent Visitor Notes Sent in This Session -->
+        <div id="session-comments-box" class="hidden pt-2 border-t border-stone-200 dark:border-espresso-800 space-y-1.5">
+          <span class="text-[11px] font-semibold uppercase tracking-wider text-stone-500 dark:text-stone-400 block">Your Recent Notes</span>
+          <div id="session-comments-list" class="space-y-1.5 max-h-28 overflow-y-auto"></div>
+        </div>
       </div>
 
-      <div class="p-5 overflow-y-auto space-y-4 flex-1 text-xs sm:text-sm">
-        <!-- Connection Status & Controls -->
-        <div class="p-3.5 rounded-xl bg-parchment-100 dark:bg-espresso-850 border border-stone-200 dark:border-espresso-700 space-y-3">
-          <div class="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <span class="text-[11px] uppercase tracking-wider font-semibold text-stone-500 dark:text-stone-400 block">Sync Status</span>
-              <span id="gdrive-sync-status-label" class="font-semibold text-stone-800 dark:text-parchment-100">Not connected yet</span>
-            </div>
-            <div class="flex flex-wrap items-center gap-1.5">
-              <button id="gdrive-pull-now-btn" class="hidden px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition">Pull from Drive</button>
-              <button id="gdrive-push-now-btn" class="hidden px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold transition">Push to Drive</button>
-              <button id="gdrive-disconnect-btn" class="hidden px-3 py-1.5 rounded-lg bg-stone-200 dark:bg-espresso-700 hover:bg-red-500/20 hover:text-red-500 text-xs font-semibold transition">Disconnect</button>
-            </div>
-          </div>
-
-          <div class="space-y-2">
-            <div>
-              <label for="gdrive-folder-input" class="block text-xs font-semibold text-stone-600 dark:text-stone-300 mb-1">Google Drive Folder Link or ID</label>
-              <input id="gdrive-folder-input" type="text" value="1tm_iUo8HAdVslNVYde7LJ3sLRicavgq6" placeholder="Paste Google Drive folder URL or ID..." class="w-full px-3 py-2 rounded-xl bg-white dark:bg-espresso-950 border border-stone-300 dark:border-espresso-700 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-            </div>
-            <div>
-              <label for="gdrive-url-input" class="block text-xs font-semibold text-stone-600 dark:text-stone-300 mb-1">Google Apps Script Web App URL (<code>.../exec</code>)</label>
-              <div class="flex flex-col sm:flex-row gap-2">
-                <input id="gdrive-url-input" type="url" placeholder="https://script.google.com/macros/s/.../exec" class="flex-1 px-3 py-2 rounded-xl bg-white dark:bg-espresso-950 border border-stone-300 dark:border-espresso-700 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-                <button id="save-gdrive-url-btn" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition shrink-0">Connect &amp; Sync</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- 1-Tap Cross-Device Magic Link -->
-          <div id="gdrive-share-box" class="hidden pt-2 border-t border-stone-200 dark:border-espresso-700 space-y-1.5">
-            <span class="text-xs font-semibold text-emerald-700 dark:text-emerald-400 block">1-Tap Cross-Device Link (open on phone/iPad/other browsers):</span>
-            <div class="flex gap-2">
-              <input id="gdrive-magic-link" type="text" readonly class="flex-1 px-3 py-1.5 rounded-lg bg-white dark:bg-espresso-950 border border-stone-300 dark:border-espresso-700 font-mono text-[11px] text-stone-600 dark:text-stone-300" />
-              <button id="copy-magic-link-btn" class="px-3 py-1.5 rounded-lg bg-stone-200 dark:bg-espresso-700 hover:bg-amber-500/20 text-xs font-semibold shrink-0">Copy Link</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- One-Time Setup Instructions -->
-        <div class="space-y-2">
-          <div class="flex items-center justify-between">
-            <span class="font-bold text-stone-800 dark:text-parchment-100">One-Time Setup (Google Apps Script Bridge)</span>
-            <button id="copy-apps-script-btn" class="px-3 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs font-semibold transition">Copy Script Code</button>
-          </div>
-          <ol class="list-decimal list-inside space-y-1 text-xs text-stone-600 dark:text-stone-300 leading-relaxed">
-            <li>Open <a href="https://script.google.com" target="_blank" rel="noopener noreferrer" class="text-amber-700 dark:text-amber-400 underline font-semibold">script.google.com</a> and click <strong>New project</strong>.</li>
-            <li>Replace all code in <code>Code.gs</code> with the snippet below and click <strong>Save</strong>.</li>
-            <li>Click <strong>Deploy → New deployment</strong>, choose type <strong>Web app</strong>, set <em>Execute as:</em> <strong>Me</strong> and <em>Who has access:</em> <strong>Anyone</strong>, then authorize &amp; copy the Web App URL.</li>
-          </ol>
-          <pre id="apps-script-snippet" class="p-3 rounded-xl bg-espresso-950 text-amber-200 font-mono text-[11px] overflow-x-auto border border-espresso-700 leading-relaxed">const DEFAULT_FOLDER_ID = '1tm_iUo8HAdVslNVYde7LJ3sLRicavgq6';
-
-function doGet(e) {
-  const folderId = (e && e.parameter && e.parameter.folderId) || DEFAULT_FOLDER_ID;
-  const folder = DriveApp.getFolderById(folderId);
-  const files = folder.getFiles();
-  const songs = [];
-  while (files.hasNext()) {
-    const file = files.next();
-    const name = file.getName();
-    if (/\.md$/i.test(name)) {
-      songs.push({
-        driveFileId: file.getId(),
-        fileName: name,
-        rawMarkdown: file.getBlob().getDataAsString('UTF-8'),
-        updatedAt: file.getLastUpdated().getTime()
-      });
-    }
-  }
-  return ContentService.createTextOutput(JSON.stringify({ ok: true, songs: songs }))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-
-function doPost(e) {
-  const payload = JSON.parse((e && e.postData && e.postData.contents) || '{}');
-  const folder = DriveApp.getFolderById(payload.folderId || DEFAULT_FOLDER_ID);
-  const action = payload.action || 'upsert';
-  const safeName = (payload.fileName || 'Untitled.md').replace(/[\/\\:*?"<>|]/g, '-');
-
-  const existing = folder.getFilesByName(safeName);
-  if (action === 'delete') {
-    while (existing.hasNext()) existing.next().setTrashed(true);
-    return ContentService.createTextOutput(JSON.stringify({ ok: true }))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
-
-  if (existing.hasNext()) {
-    const file = existing.next();
-    file.setContent(payload.rawMarkdown || '');
-  } else {
-    folder.createFile(safeName, payload.rawMarkdown || '', MimeType.PLAIN_TEXT);
-  }
-  return ContentService.createTextOutput(JSON.stringify({ ok: true }))
-    .setMimeType(ContentService.MimeType.JSON);
-}</pre>
+      <div class="px-5 py-3.5 border-t border-stone-200 dark:border-espresso-800 flex flex-wrap items-center justify-between gap-2 bg-parchment-100/60 dark:bg-espresso-950/60">
+        <button id="copy-comment-email-btn" class="px-3.5 py-2 rounded-xl bg-stone-200 dark:bg-espresso-800 hover:bg-stone-300 dark:hover:bg-espresso-700 text-xs font-semibold transition">
+          Copy Email Text
+        </button>
+        <div class="flex items-center gap-2">
+          <button id="cancel-comment-btn" class="px-4 py-2 rounded-xl bg-stone-200 dark:bg-espresso-800 hover:bg-stone-300 dark:hover:bg-espresso-700 text-xs sm:text-sm font-semibold transition">Cancel</button>
+          <button id="send-comment-email-btn" class="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs sm:text-sm font-semibold shadow-sm transition">
+            Email nomadraga10@gmail.com
+          </button>
         </div>
       </div>
     </div>
@@ -595,13 +425,13 @@ function doPost(e) {
 
   <script>
     // ============================================================================
-    // DATA & STARTER SONG CONFIGURATION
+    // DATA & STARTER SONG CONFIGURATION (READ-ONLY PUBLIC SETLIST)
     // ============================================================================
     const STORAGE_KEY = 'nomad_raga_songbook_v1';
     const ACTIVE_SONG_KEY = 'nomad_raga_active_song_v1';
     const THEME_KEY = 'nomad_raga_theme';
-    const GDRIVE_SYNC_URL_KEY = 'nomad_raga_gdrive_sync_url_v1';
-    const GDRIVE_FOLDER_ID_KEY = 'nomad_raga_gdrive_folder_id_v1';
+    const COMMENTS_STORAGE_KEY = 'nomad_raga_visitor_comments_v1';
+    const FEEDBACK_EMAIL = 'nomadraga10@gmail.com';
     const DEFAULT_GDRIVE_SYNC_URL = 'https://script.google.com/macros/s/AKfycbxN0r10l7jx8XyseBzuBkHJ7AqlP1RFN4YlwDm21RrlhC4pOVR7TZnhSoIavNZgVgFs/exec';
     const DEFAULT_GDRIVE_FOLDER_ID = '1tm_iUo8HAdVslNVYde7LJ3sLRicavgq6';
 
@@ -669,50 +499,19 @@ Pukaarataa Chalaa Huun Main
       transposeSteps: 0,
       searchQuery: '',
       selectedTag: null,
+      selectedKey: '',
+      selectedTimeSig: '',
       fontSizePx: 15,
-      editingSongId: null,
       storageAvailable: true,
       gdriveUrl: DEFAULT_GDRIVE_SYNC_URL,
       gdriveFolderId: DEFAULT_GDRIVE_FOLDER_ID,
-      isSyncingDrive: false
+      isSyncingDrive: false,
+      visitorComments: []
     };
 
     // ============================================================================
-    // STORAGE, GOOGLE DRIVE SYNC & INITIALIZATION HELPERS
+    // STORAGE & INITIALIZATION HELPERS
     // ============================================================================
-    function extractFolderId(input) {
-      if (!input) return DEFAULT_GDRIVE_FOLDER_ID;
-      const trimmed = input.trim();
-      const match = trimmed.match(/folders\/([a-zA-Z0-9_-]+)/) || trimmed.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-      if (match) return match[1];
-      if (/^[a-zA-Z0-9_-]{15,}$/.test(trimmed)) return trimmed;
-      return DEFAULT_GDRIVE_FOLDER_ID;
-    }
-
-    function extractDriveConfigFromUrl() {
-      const params = new URLSearchParams(window.location.search);
-      const urlFromQuery = params.get('driveSync');
-      const folderFromQuery = params.get('folderId');
-
-      if (urlFromQuery && urlFromQuery.startsWith('https://script.google.com/')) {
-        try { localStorage.setItem(GDRIVE_SYNC_URL_KEY, urlFromQuery.trim()); } catch (e) {}
-      }
-      if (folderFromQuery) {
-        const cleanId = extractFolderId(folderFromQuery);
-        try { localStorage.setItem(GDRIVE_FOLDER_ID_KEY, cleanId); } catch (e) {}
-      }
-
-      let savedUrl = DEFAULT_GDRIVE_SYNC_URL;
-      let savedFolder = DEFAULT_GDRIVE_FOLDER_ID;
-      try {
-        const storedUrl = localStorage.getItem(GDRIVE_SYNC_URL_KEY);
-        if (storedUrl !== null) savedUrl = storedUrl;
-        savedFolder = localStorage.getItem(GDRIVE_FOLDER_ID_KEY) || DEFAULT_GDRIVE_FOLDER_ID;
-      } catch (e) {}
-
-      return { url: savedUrl, folderId: savedFolder };
-    }
-
     function checkStorageAvailability() {
       try {
         const testKey = '__nomad_raga_test__';
@@ -738,7 +537,7 @@ Pukaarataa Chalaa Huun Main
           localStorage.setItem(ACTIVE_SONG_KEY, state.activeSongId);
         }
       } catch (e) {
-        console.warn('Unable to save library to localStorage:', e);
+        console.warn('Unable to cache library locally:', e);
       }
     }
 
@@ -759,274 +558,286 @@ Pukaarataa Chalaa Huun Main
           return true;
         }
       } catch (e) {
-        console.warn('Unable to read localStorage:', e);
+        console.warn('Unable to read local cache:', e);
       }
       return false;
     }
 
+    function loadVisitorComments() {
+      if (!state.storageAvailable) return;
+      try {
+        const raw = localStorage.getItem(COMMENTS_STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) state.visitorComments = parsed;
+        }
+      } catch (e) {}
+    }
+
+    function saveVisitorComments() {
+      if (!state.storageAvailable) return;
+      try {
+        localStorage.setItem(COMMENTS_STORAGE_KEY, JSON.stringify(state.visitorComments.slice(0, 20)));
+      } catch (e) {}
+    }
+
+    function applyTheme(theme) {
+      if (theme === 'light') {
+        document.documentElement.classList.remove('dark');
+      } else {
+        document.documentElement.classList.add('dark');
+      }
+      if (state.storageAvailable) {
+        try {
+          localStorage.setItem(THEME_KEY, theme);
+        } catch (e) {}
+      }
+    }
+
     function showToast(message, type = 'info') {
-      const container = document.getElementById('toast-container');
-      if (!container) return;
-      const toast = document.createElement('div');
-      const colorClasses = type === 'error'
-        ? 'bg-red-600 text-white border-red-400'
-        : type === 'success'
-        ? 'bg-emerald-600 text-white border-emerald-400'
-        : 'bg-espresso-850 text-parchment-100 border-amber-500/40';
-      toast.className = `pointer-events-auto px-4 py-2.5 rounded-xl border text-xs sm:text-sm font-medium shadow-lg transition-all duration-200 ${colorClasses}`;
-      toast.textContent = message;
-      container.appendChild(toast);
+      let container = document.getElementById('toast-container');
+      if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        container.className = 'fixed top-16 right-4 z-50 flex flex-col gap-2 pointer-events-none';
+        document.body.appendChild(container);
+      }
+      const colors = {
+        success: 'bg-emerald-600 text-white border-emerald-500',
+        error: 'bg-red-600 text-white border-red-500',
+        info: 'bg-espresso-850 text-parchment-100 border-espresso-600'
+      };
+      const el = document.createElement('div');
+      el.className = `px-4 py-2.5 rounded-xl border shadow-xl text-xs sm:text-sm font-medium transition-all duration-300 ${colors[type] || colors.info}`;
+      el.textContent = message;
+      container.appendChild(el);
       setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateY(-6px)';
-        setTimeout(() => toast.remove(), 220);
+        el.style.opacity = '0';
+        setTimeout(() => el.remove(), 300);
       }, 3200);
+    }
+
+    function escapeHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
     }
 
     // ============================================================================
     // MARKDOWN & CHORD PARSER + TRANSPOSITION ENGINE
     // ============================================================================
-    const SHARP_SCALE = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-    const FLAT_TO_SHARP = {
-      'Db': 'C#', 'Eb': 'D#', 'Fb': 'E', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#', 'Cb': 'B'
-    };
+    const CHROMATIC_SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const FLAT_TO_SHARP = { Db: 'C#', Eb: 'D#', Gb: 'F#', Ab: 'G#', Bb: 'A#' };
+    const CHORD_TOKEN_REGEX = /^([A-G](?:#|b)?)(M7|maj7|maj9|maj|min7|min|m7b5|m7|m9|m11|m6|m|M|dim7|dim|aug|sus2|sus4|sus|add9|add11|6|7|9|11|13)?(\/[A-G](?:#|b)?)?$/;
 
     function normalizeChordToken(token) {
-      return token.replace(/^([A-G][#b]?)M(?=$|[^a-zA-Z0-9]|7|9|11|13)/, (match, root, offset, full) => {
-        if (/^[A-G][#b]?M(7|9|11|13|aj)/.test(full)) return full;
-        return root + 'm';
-      });
+      const m = token.match(CHORD_TOKEN_REGEX);
+      if (!m) return token;
+      let [, root, quality = '', bass = ''] = m;
+      if (quality === 'M') quality = 'm';
+      return `${root}${quality}${bass}`;
     }
 
-    const CHORD_REGEX = /^[A-G](#|b)?(m|min|maj|dim|aug|sus|add|M)?[0-9]{0,2}(\/[A-G](#|b)?)?(\((#|b)?[0-9]+\))?$/;
-
-    function isChordToken(tok) {
-      if (!tok) return false;
-      if (tok === '|' || tok === '/' || tok === '%' || tok === '-' || tok === 'x2' || tok === 'x4') return true;
-      return CHORD_REGEX.test(tok);
-    }
-
-    function isChordOnlyLine(line) {
+    function isChordLine(line) {
       const trimmed = line.trim();
       if (!trimmed) return false;
       if (/^\[.*\]$/.test(trimmed) || /^\(.*\)$/.test(trimmed)) return false;
       const tokens = trimmed.split(/\s+/);
       let chordCount = 0;
       for (const tok of tokens) {
-        if (!isChordToken(tok)) return false;
-        if (CHORD_REGEX.test(tok)) chordCount++;
+        const clean = tok.replace(/[|()[\].,:;*]/g, '');
+        if (!clean) continue;
+        if (CHORD_TOKEN_REGEX.test(clean)) {
+          chordCount++;
+        } else if (!/^([xX]\d+|\d+[xX]|\/|-|NC|N\.C\.)$/.test(clean)) {
+          return false;
+        }
       }
       return chordCount > 0;
     }
 
-    function transposeSingleChord(chordToken, steps) {
-      if (!CHORD_REGEX.test(chordToken)) return chordToken;
-      const normalized = normalizeChordToken(chordToken);
-      if (steps === 0) return normalized;
-
-      return normalized.replace(/([A-G])(#|b)?/g, (match, note, accidental) => {
-        let fullNote = note + (accidental || '');
-        if (FLAT_TO_SHARP[fullNote]) fullNote = FLAT_TO_SHARP[fullNote];
-        const idx = SHARP_SCALE.indexOf(fullNote);
-        if (idx === -1) return match;
-        const newIdx = ((idx + steps) % 12 + 12) % 12;
-        return SHARP_SCALE[newIdx];
-      });
+    function transposeNote(note, semitones) {
+      const norm = FLAT_TO_SHARP[note] || note;
+      const idx = CHROMATIC_SHARP.indexOf(norm);
+      if (idx === -1) return note;
+      const nextIdx = (idx + semitones + 120) % 12;
+      return CHROMATIC_SHARP[nextIdx];
     }
 
-    function transposeChordLinePreservingSpacing(line, steps) {
-      const tokenRegex = /\S+/g;
-      let result = '';
-      let lastIndex = 0;
-      let match;
+    function transposeSingleChord(token, semitones) {
+      const normalized = normalizeChordToken(token);
+      const m = normalized.match(CHORD_TOKEN_REGEX);
+      if (!m) return normalized;
+      const [, root, quality = '', bass = ''] = m;
+      const newRoot = transposeNote(root, semitones);
+      const newBass = bass ? '/' + transposeNote(bass.slice(1), semitones) : '';
+      return `${newRoot}${quality}${newBass}`;
+    }
 
-      while ((match = tokenRegex.exec(line)) !== null) {
-        const originalToken = match[0];
-        const start = match.index;
-        const transposed = transposeSingleChord(originalToken, steps);
-        const gap = start - lastIndex;
-
-        if (result.length === 0) {
-          result += ' '.repeat(gap) + transposed;
-        } else {
-          const adjustedGap = Math.max(1, gap);
-          result += ' '.repeat(adjustedGap) + transposed;
-        }
-        lastIndex = start + originalToken.length;
-      }
-      return result;
+    function transposeChordLinePreservingSpacing(line, semitones) {
+      return line.replace(/\S+/g, (match) => {
+        const cleanMatch = match.match(/^([|()[\]]*)([A-G](?:#|b)?(?:M7|maj7|maj9|maj|min7|min|m7b5|m7|m9|m11|m6|m|M|dim7|dim|aug|sus2|sus4|sus|add9|add11|6|7|9|11|13)?(?:\/[A-G](?:#|b)?)?)([|()[\].,:;*]*)$/);
+        if (!cleanMatch) return match;
+        const [, prefix, chordCore, suffix] = cleanMatch;
+        const shifted = transposeSingleChord(chordCore, semitones);
+        return `${prefix}${shifted}${suffix}`;
+      });
     }
 
     function extractYouTubeId(input) {
       if (!input) return '';
-      const trimmed = input.trim();
-      if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) return trimmed;
+      const str = String(input).trim();
+      if (/^[a-zA-Z0-9_-]{11}$/.test(str)) return str;
       const patterns = [
         /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/,
         /[?&]v=([a-zA-Z0-9_-]{11})/
       ];
       for (const re of patterns) {
-        const m = trimmed.match(re);
+        const m = str.match(re);
         if (m) return m[1];
       }
       return '';
     }
 
-    function parseMarkdownSong(rawMd, fallbackFilename = 'Untitled Song') {
-      let text = (rawMd || '').replace(/\r\n/g, '\n');
+    function parseMarkdownSong(rawMd, fallbackFilename = 'Untitled Song.md') {
+      const text = String(rawMd || '').replace(/\r\n/g, '\n');
       let title = fallbackFilename.replace(/\.md$/i, '').trim() || 'Untitled Song';
       let bpm = 96;
       let timeSignature = '4/4';
       let key = 'C';
       let swing = false;
       let youtubeId = '';
-      const tagSet = new Set();
+      let tags = new Set();
+      let body = text;
 
-      // 1. Optional YAML Frontmatter (--- ... ---)
-      const yamlMatch = text.match(/^---\s*\n([\s\S]*?)\n---\s*\n?/);
-      if (yamlMatch) {
-        const fm = yamlMatch[1];
-        text = text.slice(yamlMatch[0].length);
-        fm.split('\n').forEach(line => {
-          const kv = line.match(/^([a-zA-Z0-9_-]+)\s*:\s*(.+)$/);
+      const fmMatch = text.match(/^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/);
+      if (fmMatch) {
+        const fmLines = fmMatch[1].split('\n');
+        body = fmMatch[2];
+        fmLines.forEach(line => {
+          const kv = line.match(/^([a-zA-Z0-9_-]+)\s*:\s*(.*)$/);
           if (!kv) return;
-          const k = kv[1].toLowerCase().trim();
+          const k = kv[1].toLowerCase();
           const v = kv[2].trim().replace(/^["']|["']$/g, '');
           if (k === 'title' && v) title = v;
-          if (k === 'bpm' && !isNaN(parseInt(v, 10))) bpm = parseInt(v, 10);
+          if (k === 'bpm' && v) bpm = parseInt(v, 10) || bpm;
           if ((k === 'time_signature' || k === 'timesignature' || k === 'time') && v) timeSignature = v;
           if (k === 'key' && v) key = normalizeChordToken(v);
-          if (k === 'swing') swing = /^(yes|true|1)$/i.test(v);
-          if ((k === 'youtube_id' || k === 'youtube' || k === 'youtubelink') && v) youtubeId = extractYouTubeId(v);
-          if (k === 'tags') {
-            const found = v.match(/#[a-zA-Z0-9_-]+/g) || v.replace(/[\[\]"']/g, '').split(',').map(t => t.trim()).filter(Boolean);
-            found.forEach(t => tagSet.add(t.startsWith('#') ? t : '#' + t));
+          if (k === 'swing' && v) swing = /^(yes|true|1)$/i.test(v);
+          if ((k === 'youtube_id' || k === 'youtube' || k === 'youtube_link') && v) youtubeId = extractYouTubeId(v);
+          if (k === 'tags' && v) {
+            const cleaned = v.replace(/^\[|\]$/g, '');
+            cleaned.split(/[\s,]+/).forEach(t => {
+              const tag = t.replace(/^["']|["']$/g, '').trim();
+              if (tag) tags.add(tag.startsWith('#') ? tag : `#${tag}`);
+            });
           }
         });
-      }
-
-      // 2. Top-of-file metadata headers (sample .md style before ```chords)
-      const lines = text.split('\n');
-      const bodyLines = [];
-      let inCodeFence = false;
-
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        const trimmed = line.trim();
-
-        if (/^```/.test(trimmed)) {
-          inCodeFence = !inCodeFence;
-          continue;
+      } else {
+        const lines = text.split('\n');
+        let bodyStartIdx = 0;
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (line.startsWith('```')) {
+            bodyStartIdx = i;
+            break;
+          }
+          if (!line) {
+            bodyStartIdx = i + 1;
+            continue;
+          }
+          if (/^#\w+/.test(line) && !/^#\s+/.test(line)) {
+            line.split(/\s+/).forEach(tok => {
+              if (tok.startsWith('#') && tok.length > 1) tags.add(tok);
+            });
+            bodyStartIdx = i + 1;
+            continue;
+          }
+          const titleHeading = line.match(/^#\s+(.+)$/);
+          if (titleHeading && title === fallbackFilename.replace(/\.md$/i, '').trim()) {
+            title = titleHeading[1].trim();
+            bodyStartIdx = i + 1;
+            continue;
+          }
+          const metaMatch = line.match(/^(Title|BPM|Time\s*Signature|Key|Swing|YouTube\s*Link|YouTube)\s*:\s*(.*)$/i);
+          if (metaMatch) {
+            const label = metaMatch[1].toLowerCase().replace(/\s+/g, '');
+            const val = metaMatch[2].trim();
+            if (label === 'title' && val) title = val;
+            if (label === 'bpm' && val) bpm = parseInt(val, 10) || bpm;
+            if (label === 'timesignature' && val) timeSignature = val;
+            if (label === 'key' && val) key = normalizeChordToken(val);
+            if (label === 'swing' && val) swing = /^(yes|true|1)$/i.test(val);
+            if ((label === 'youtubelink' || label === 'youtube') && val) youtubeId = extractYouTubeId(val);
+            bodyStartIdx = i + 1;
+            continue;
+          }
+          break;
         }
+        body = lines.slice(bodyStartIdx).join('\n');
+      }
 
-        if (!inCodeFence) {
-          if (/^#\s+(.+)$/.test(trimmed) && title === fallbackFilename.replace(/\.md$/i, '').trim()) {
-            title = trimmed.replace(/^#\s+/, '').trim();
-            continue;
-          }
-          if (/^(#[a-zA-Z0-9_-]+\s*)+$/.test(trimmed)) {
-            trimmed.split(/\s+/).forEach(t => tagSet.add(t));
-            continue;
-          }
-          const bpmMatch = trimmed.match(/^BPM\s*:\s*(\d+)/i);
-          if (bpmMatch) { bpm = parseInt(bpmMatch[1], 10); continue; }
+      const fenceMatch = body.match(/```(?:chords)?\s*\n([\s\S]*?)(?:\n```|$)/i);
+      const chordContent = fenceMatch ? fenceMatch[1] : body.replace(/^```(?:chords)?\s*\n?/i, '').replace(/\n?```\s*$/, '');
 
-          const tsMatch = trimmed.match(/^Time\s*Signature\s*:\s*([0-9]+\/[0-9]+)/i);
-          if (tsMatch) { timeSignature = tsMatch[1]; continue; }
-
-          const keyMatch = trimmed.match(/^Key\s*:\s*([A-G][#b]?m?)/i);
-          if (keyMatch) { key = normalizeChordToken(keyMatch[1]); continue; }
-
-          const swingMatch = trimmed.match(/^Swing\s*:\s*(Yes|No|True|False)/i);
-          if (swingMatch) { swing = /^(yes|true)$/i.test(swingMatch[1]); continue; }
-
-          const ytMatch = trimmed.match(/^YouTube(?:\s*Link|\s*ID)?\s*:\s*(.*)$/i);
-          if (ytMatch) {
-            if (ytMatch[1].trim()) youtubeId = extractYouTubeId(ytMatch[1].trim());
-            continue;
+      if (key === 'C' && !/key\s*:/i.test(text)) {
+        for (const l of chordContent.split('\n')) {
+          if (isChordLine(l)) {
+            const firstTok = l.trim().split(/\s+/)[0].replace(/[|()[\].,:;*]/g, '');
+            if (CHORD_TOKEN_REGEX.test(firstTok)) {
+              key = normalizeChordToken(firstTok);
+              break;
+            }
           }
         }
-        bodyLines.push(line);
       }
 
-      if (tagSet.size === 0) {
-        tagSet.add('#NomadRaga');
+      if (tags.size === 0) {
+        tags.add('#NomadRaga');
       }
+
+      const id = 'song_' + title.toLowerCase().replace(/[^a-z0-9]+/g, '_') + '_' + Math.abs(hashCode(title + chordContent.slice(0, 60)));
 
       return {
-        id: 'song_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+        id,
         title,
         bpm,
         timeSignature,
         key,
         swing,
         youtubeId,
-        tags: Array.from(tagSet),
-        content: bodyLines.join('\n').replace(/^\n+/, ''),
+        tags: Array.from(tags),
+        content: chordContent.replace(/^\n+/, '').replace(/\n+$/, ''),
         rawMarkdown: rawMd
       };
     }
 
-    function buildMarkdownFromSong(song) {
-      const tagsLine = (song.tags && song.tags.length ? song.tags : ['#NomadRaga']).join(' ');
-      const ytLine = song.youtubeId ? `https://youtu.be/${song.youtubeId}` : '';
-      return `${tagsLine}\n\nBPM: ${song.bpm || 96}\nTime Signature: ${song.timeSignature || '4/4'}\nKey: ${song.key || 'C'}\nSwing: ${song.swing ? 'Yes' : 'No'}\nYouTube Link: ${ytLine}\n\n\`\`\`chords\n${song.content || ''}\n\`\`\``;
-    }
-
-    function escapeHtml(str) {
-      return str
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
-    }
-
-    function renderChordSheet() {
-      const song = getActiveSong();
-      const output = document.getElementById('chord-sheet-output');
-      if (!song || !output) return;
-
-      const lines = (song.content || '').split('\n');
-      const htmlParts = [];
-
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed) {
-          htmlParts.push('<div class="h-4"></div>');
-          continue;
-        }
-        if (/^\[.*\]$/.test(trimmed)) {
-          htmlParts.push(`<div class="mt-4 mb-1 font-bold text-xs sm:text-sm uppercase tracking-wider text-amber-700 dark:text-amber-400/90">${escapeHtml(trimmed)}</div>`);
-          continue;
-        }
-        if (/^\(.*\)$/.test(trimmed)) {
-          htmlParts.push(`<div class="my-2 italic text-xs sm:text-sm text-stone-500 dark:text-stone-400">${escapeHtml(trimmed)}</div>`);
-          continue;
-        }
-        if (isChordOnlyLine(line)) {
-          const shifted = transposeChordLinePreservingSpacing(line, state.transposeSteps);
-          htmlParts.push(`<div class="chord-line font-bold text-amberchord-light dark:text-amberchord-dark select-all">${escapeHtml(shifted)}</div>`);
-        } else {
-          htmlParts.push(`<div class="chord-line text-stone-800 dark:text-parchment-100">${escapeHtml(line)}</div>`);
-        }
+    function hashCode(str) {
+      let h = 0;
+      for (let i = 0; i < str.length; i++) {
+        h = ((h << 5) - h) + str.charCodeAt(i);
+        h |= 0;
       }
-
-      output.style.fontSize = state.fontSizePx + 'px';
-      output.innerHTML = htmlParts.join('');
+      return h;
     }
 
     // ============================================================================
-    // WEB AUDIO API METRONOME (TIME SIGNATURE & SWING AWARE)
+    // WEB AUDIO API TIME-SIGNATURE & SWING METRONOME
     // ============================================================================
     let audioCtx = null;
     let isMetroPlaying = false;
     let metroTimerId = null;
     let currentBeatIndex = 0;
 
-    function parseTimeSignature(tsStr) {
-      const parts = (tsStr || '4/4').split('/');
-      const beats = Math.max(1, Math.min(16, parseInt(parts[0], 10) || 4));
-      const denom = parseInt(parts[1], 10) || 4;
-      return { beats, denom };
+    function parseTimeSignature(sig) {
+      const m = String(sig || '4/4').match(/^(\d+)\s*\/\s*(\d+)$/);
+      if (!m) return { beats: 4, unit: 4 };
+      return {
+        beats: Math.max(1, Math.min(16, parseInt(m[1], 10))),
+        unit: parseInt(m[2], 10) || 4
+      };
     }
 
     function renderBeatPips() {
@@ -1035,73 +846,53 @@ Pukaarataa Chalaa Huun Main
       const statusText = document.getElementById('metro-status-text');
       if (!song || !container || !statusText) return;
 
-      const { beats } = parseTimeSignature(song.timeSignature);
-      statusText.textContent = `${song.bpm} · ${song.timeSignature}`;
+      const bpm = song.bpm || 96;
+      const sig = song.timeSignature || '4/4';
+      const { beats } = parseTimeSignature(sig);
+      statusText.textContent = `${bpm} · ${sig}`;
 
       container.innerHTML = '';
       for (let i = 0; i < beats; i++) {
         const pip = document.createElement('span');
-        pip.className = 'w-2 h-2 rounded-full bg-amber-500 opacity-35 inline-block transition-transform';
-        pip.dataset.beat = String(i);
+        const isActive = isMetroPlaying && (i === currentBeatIndex);
+        const isAccent = i === 0 || (beats === 6 && i === 3) || (beats === 12 && i % 3 === 0);
+        pip.className = `inline-block rounded-full transition-all duration-75 ${
+          isAccent ? 'w-2.5 h-2.5' : 'w-2 h-2'
+        } ${
+          isActive
+            ? (i === 0 ? 'bg-amber-400 scale-125 shadow-sm shadow-amber-400' : 'bg-amber-500 scale-110')
+            : 'bg-stone-400/40 dark:bg-stone-600/60'
+        }`;
         container.appendChild(pip);
       }
     }
 
-    function playClickSound(isDownbeat, isSubAccent) {
-      if (!audioCtx) {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (AudioContextClass) audioCtx = new AudioContextClass();
-      }
-      if (!audioCtx) return;
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-
-      const now = audioCtx.currentTime;
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(isDownbeat ? 1150 : isSubAccent ? 900 : 720, now);
-      osc.frequency.exponentialRampToValueAtTime(120, now + 0.045);
-
-      gain.gain.setValueAtTime(isDownbeat ? 0.45 : isSubAccent ? 0.3 : 0.2, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
-
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start(now);
-      osc.stop(now + 0.055);
-    }
-
-    function scheduleNextMetronomeTick() {
-      if (!isMetroPlaying) return;
-      const song = getActiveSong();
-      if (!song) return;
-
-      const { beats, denom } = parseTimeSignature(song.timeSignature);
-      const beatIdx = currentBeatIndex % beats;
-      const isDownbeat = beatIdx === 0;
-      const isSubAccent = (beats === 6 && beatIdx === 3) || (beats === 7 && (beatIdx === 3 || beatIdx === 5)) || (beats === 12 && (beatIdx % 3 === 0));
-
-      playClickSound(isDownbeat, isSubAccent);
-
-      const pips = document.querySelectorAll('#metro-beat-pips span');
-      pips.forEach((p, idx) => {
-        p.classList.remove('beat-active');
-        if (idx === beatIdx) {
-          void p.offsetWidth;
-          p.classList.add('beat-active');
+    function playMetronomeClick(beatIdx, totalBeats) {
+      try {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         }
-      });
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
 
-      const baseQuarterMs = 60000 / (song.bpm || 96);
-      let intervalMs = denom === 8 ? baseQuarterMs / 2 : baseQuarterMs;
+        const isDownbeat = beatIdx === 0;
+        const isSubAccent = (totalBeats === 6 && beatIdx === 3) || (totalBeats === 12 && beatIdx % 3 === 0);
 
-      if (song.swing) {
-        intervalMs = (beatIdx % 2 === 0) ? intervalMs * 1.33 : intervalMs * 0.67;
-      }
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(isDownbeat ? 1150 : (isSubAccent ? 900 : 720), now);
 
-      currentBeatIndex++;
-      metroTimerId = setTimeout(scheduleNextMetronomeTick, intervalMs);
+        gain.gain.setValueAtTime(isDownbeat ? 0.28 : (isSubAccent ? 0.2 : 0.13), now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.05);
+      } catch (e) {}
     }
 
     function stopMetronome() {
@@ -1111,7 +902,31 @@ Pukaarataa Chalaa Huun Main
         metroTimerId = null;
       }
       currentBeatIndex = 0;
-      document.querySelectorAll('#metro-beat-pips span').forEach(p => p.classList.remove('beat-active'));
+      renderBeatPips();
+    }
+
+    function scheduleNextBeat() {
+      if (!isMetroPlaying) return;
+      const song = getActiveSong();
+      if (!song) {
+        stopMetronome();
+        return;
+      }
+      const bpm = Math.max(30, Math.min(300, song.bpm || 96));
+      const { beats, unit } = parseTimeSignature(song.timeSignature || '4/4');
+      const beatIdx = currentBeatIndex % beats;
+
+      playMetronomeClick(beatIdx, beats);
+      currentBeatIndex = beatIdx;
+      renderBeatPips();
+
+      let intervalMs = (60000 / bpm) * (4 / unit);
+      if (song.swing && unit === 4) {
+        intervalMs = (beatIdx % 2 === 0) ? intervalMs * 1.15 : intervalMs * 0.85;
+      }
+
+      currentBeatIndex = (beatIdx + 1) % beats;
+      metroTimerId = setTimeout(scheduleNextBeat, intervalMs);
     }
 
     function toggleMetronome() {
@@ -1120,28 +935,34 @@ Pukaarataa Chalaa Huun Main
       } else {
         isMetroPlaying = true;
         currentBeatIndex = 0;
-        scheduleNextMetronomeTick();
+        scheduleNextBeat();
       }
     }
 
     // ============================================================================
-    // SMOOTH REQUESTANIMATIONFRAME AUTO-SCROLL
+    // SMOOTH AUTO-SCROLL ENGINE (50% REDUCED BASE SPEED)
     // ============================================================================
     let isAutoScrolling = false;
+    let scrollSpeed = 0.6;
     let scrollRafId = null;
     let lastScrollTimestamp = null;
-    let scrollSpeed = 1.2;
 
     function updateScrollUI() {
+      const btn = document.getElementById('scroll-toggle-btn');
       const playIcon = document.getElementById('scroll-play-icon');
       const pauseIcon = document.getElementById('scroll-pause-icon');
       const label = document.getElementById('scroll-btn-label');
-      if (!playIcon || !pauseIcon || !label) return;
+      if (!btn || !playIcon || !pauseIcon || !label) return;
+
       if (isAutoScrolling) {
+        btn.classList.remove('bg-amber-600', 'hover:bg-amber-500');
+        btn.classList.add('bg-emerald-600', 'hover:bg-emerald-500');
         playIcon.classList.add('hidden');
         pauseIcon.classList.remove('hidden');
         label.textContent = 'Pause';
       } else {
+        btn.classList.remove('bg-emerald-600', 'hover:bg-emerald-500');
+        btn.classList.add('bg-amber-600', 'hover:bg-amber-500');
         playIcon.classList.remove('hidden');
         pauseIcon.classList.add('hidden');
         label.textContent = 'Scroll';
@@ -1162,7 +983,8 @@ Pukaarataa Chalaa Huun Main
       if (!isAutoScrolling) return;
       if (lastScrollTimestamp !== null) {
         const dt = (timestamp - lastScrollTimestamp) / 1000;
-        const pixelsPerSec = 24 * scrollSpeed;
+        // Reduced base speed by 50% (12 px/sec at 1.0x)
+        const pixelsPerSec = 12 * scrollSpeed;
         window.scrollBy(0, pixelsPerSec * dt);
         if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 2) {
           stopAutoScroll();
@@ -1185,40 +1007,28 @@ Pukaarataa Chalaa Huun Main
     }
 
     // ============================================================================
-    // GOOGLE DRIVE FOLDER SYNC (.MD FILES)
+    // GOOGLE DRIVE FOLDER SYNC (READ-ONLY PULL)
     // ============================================================================
     function updateDriveSyncUI() {
       const dot = document.getElementById('gdrive-status-dot');
       const statusLabel = document.getElementById('gdrive-sync-status-label');
-      const pullBtn = document.getElementById('gdrive-pull-now-btn');
-      const pushBtn = document.getElementById('gdrive-push-now-btn');
-      const disconnectBtn = document.getElementById('gdrive-disconnect-btn');
-      const shareBox = document.getElementById('gdrive-share-box');
-      const magicInput = document.getElementById('gdrive-magic-link');
+      const refreshIcon = document.getElementById('refresh-setlist-icon');
 
-      const connected = Boolean(state.gdriveUrl && state.gdriveUrl.startsWith('https://script.google.com/'));
       if (dot) {
-        dot.className = `w-2 h-2 rounded-full ${state.isSyncingDrive ? 'bg-amber-400 animate-ping' : connected ? 'bg-emerald-500' : 'bg-stone-400'}`;
+        dot.className = `w-2 h-2 rounded-full ${state.isSyncingDrive ? 'bg-amber-400 animate-ping' : 'bg-emerald-500'}`;
+      }
+      if (refreshIcon) {
+        refreshIcon.classList.toggle('animate-spin', state.isSyncingDrive);
       }
       if (statusLabel) {
         statusLabel.textContent = state.isSyncingDrive
-          ? 'Syncing with Google Drive...'
-          : connected
-          ? `Connected to Drive Folder (${state.gdriveFolderId.slice(0, 8)}...)`
-          : 'Not connected';
-      }
-      [pullBtn, pushBtn, disconnectBtn, shareBox].forEach(el => {
-        if (!el) return;
-        el.classList.toggle('hidden', !connected);
-      });
-      if (connected && magicInput && window.location.protocol.startsWith('http')) {
-        const base = window.location.origin + window.location.pathname;
-        magicInput.value = `${base}?driveSync=${encodeURIComponent(state.gdriveUrl)}&folderId=${encodeURIComponent(state.gdriveFolderId)}`;
+          ? 'Refreshing setlist from Google Drive...'
+          : `Synced with Google Drive (${state.songs.length} song${state.songs.length === 1 ? '' : 's'})`;
       }
     }
 
     async function pullSongsFromGoogleDrive(silent = false) {
-      if (!state.gdriveUrl || !state.gdriveUrl.startsWith('https://script.google.com/')) return;
+      if (!state.gdriveUrl) return;
       state.isSyncingDrive = true;
       updateDriveSyncUI();
 
@@ -1229,6 +1039,9 @@ Pukaarataa Chalaa Huun Main
 
         if (data && data.ok && Array.isArray(data.songs)) {
           if (data.songs.length > 0) {
+            const currentSong = getActiveSong();
+            const currentTitle = currentSong ? currentSong.title : null;
+
             const parsedSongs = data.songs.map(item => {
               const s = parseMarkdownSong(item.rawMarkdown || '', item.fileName || 'Untitled.md');
               s.driveFileId = item.driveFileId;
@@ -1236,128 +1049,32 @@ Pukaarataa Chalaa Huun Main
               return s;
             });
             state.songs = parsedSongs;
-            if (!state.songs.some(s => s.id === state.activeSongId)) {
-              state.activeSongId = state.songs[0].id;
-            }
+
+            const matched = currentTitle ? state.songs.find(s => s.title === currentTitle) : null;
+            state.activeSongId = matched ? matched.id : state.songs[0].id;
+
             saveLibraryToLocal();
             renderAll();
-            if (!silent) showToast(`Synced ${parsedSongs.length} song(s) from Google Drive!`, 'success');
+            if (!silent) showToast(`Setlist refreshed (${parsedSongs.length} songs from Google Drive)!`, 'success');
           } else if (!silent) {
-            showToast('Connected to Drive folder (no .md files found yet).', 'info');
+            showToast('No .md songs found in the Google Drive folder yet.', 'info');
           }
         }
       } catch (err) {
         console.warn('Google Drive pull failed:', err);
-        if (!silent) showToast('Could not reach Google Drive Web App. Check deployment permissions.', 'error');
+        if (!silent) showToast('Could not refresh from Google Drive. Showing cached setlist.', 'error');
       } finally {
         state.isSyncingDrive = false;
         updateDriveSyncUI();
       }
     }
 
-    async function pushSongToGoogleDrive(song, action = 'upsert') {
-      if (!state.gdriveUrl || !state.gdriveUrl.startsWith('https://script.google.com/')) return;
-      try {
-        const fileName = (song.title || 'Untitled').replace(/[\/\\:*?"<>|]/g, '-') + '.md';
-        const rawMarkdown = song.rawMarkdown || buildMarkdownFromSong(song);
-        await fetch(state.gdriveUrl, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({
-            action,
-            folderId: state.gdriveFolderId || DEFAULT_GDRIVE_FOLDER_ID,
-            fileName,
-            rawMarkdown
-          })
-        });
-      } catch (err) {
-        console.warn('Google Drive push failed:', err);
-      }
-    }
-
     // ============================================================================
-    // UI RENDERING (SIDEBAR, METADATA HEADER, YOUTUBE DRAWER)
+    // RENDERING & INTERACTION HANDLERS
     // ============================================================================
-    function renderSidebar() {
-      const listContainer = document.getElementById('song-list-container');
-      const tagContainer = document.getElementById('tag-pills-container');
-      const countLabel = document.getElementById('song-count-label');
-      const clearSearchBtn = document.getElementById('clear-search-btn');
-      const clearTagBtn = document.getElementById('clear-tag-btn');
-      if (!listContainer || !tagContainer) return;
-
-      clearSearchBtn.classList.toggle('hidden', !state.searchQuery);
-      clearTagBtn.classList.toggle('hidden', !state.selectedTag);
-
-      // Collect all tags
-      const allTags = new Set();
-      state.songs.forEach(s => (s.tags || []).forEach(t => allTags.add(t)));
-
-      tagContainer.innerHTML = '';
-      Array.from(allTags).sort().forEach(tag => {
-        const active = state.selectedTag === tag;
-        const btn = document.createElement('button');
-        btn.className = active
-          ? 'px-2.5 py-1 rounded-lg bg-amber-600 text-white text-[11px] font-semibold transition'
-          : 'px-2.5 py-1 rounded-lg bg-parchment-200/80 dark:bg-espresso-800 hover:bg-amber-500/20 text-stone-700 dark:text-stone-300 text-[11px] font-medium transition';
-        btn.textContent = tag;
-        btn.addEventListener('click', () => {
-          state.selectedTag = active ? null : tag;
-          renderSidebar();
-        });
-        tagContainer.appendChild(btn);
-      });
-
-      const q = state.searchQuery.toLowerCase().trim();
-      const filtered = state.songs.filter(song => {
-        const matchesTag = !state.selectedTag || (song.tags || []).includes(state.selectedTag);
-        if (!matchesTag) return false;
-        if (!q) return true;
-        return (
-          (song.title || '').toLowerCase().includes(q) ||
-          (song.key || '').toLowerCase().includes(q) ||
-          (song.content || '').toLowerCase().includes(q) ||
-          (song.tags || []).some(t => t.toLowerCase().includes(q))
-        );
-      });
-
-      countLabel.textContent = `${filtered.length} of ${state.songs.length} song${state.songs.length === 1 ? '' : 's'}`;
-      listContainer.innerHTML = '';
-
-      if (filtered.length === 0) {
-        listContainer.innerHTML = `<div class="p-4 text-center text-xs text-stone-400">No matching songs found.</div>`;
-        return;
-      }
-
-      filtered.forEach(song => {
-        const isActive = song.id === state.activeSongId;
-        const item = document.createElement('button');
-        item.className = isActive
-          ? 'w-full text-left p-3 rounded-xl bg-amber-500/15 border border-amber-500/40 transition'
-          : 'w-full text-left p-3 rounded-xl hover:bg-parchment-200/70 dark:hover:bg-espresso-800/80 border border-transparent transition';
-
-        item.innerHTML = `
-          <div class="font-semibold text-sm truncate ${isActive ? 'text-amber-800 dark:text-amber-300' : 'text-stone-800 dark:text-parchment-100'}">${escapeHtml(song.title)}</div>
-          <div class="flex items-center gap-2 mt-1 text-[11px] font-mono text-stone-500 dark:text-stone-400">
-            <span>Key: ${escapeHtml(song.key || 'C')}</span>
-            <span>•</span>
-            <span>${song.bpm || 96} BPM</span>
-            <span>•</span>
-            <span>${escapeHtml(song.timeSignature || '4/4')}</span>
-          </div>
-        `;
-        item.addEventListener('click', () => {
-          selectSong(song.id);
-          closeMobileSidebar();
-        });
-        listContainer.appendChild(item);
-      });
-    }
-
     function updateYouTubePlayerUI(song) {
+      const toggleBtn = document.getElementById('toggle-yt-btn');
       const drawer = document.getElementById('youtube-drawer');
-      const urlInput = document.getElementById('yt-url-input');
       const embedWrapper = document.getElementById('yt-embed-wrapper');
       const iframe = document.getElementById('yt-iframe');
       const sandboxCard = document.getElementById('yt-sandbox-card');
@@ -1365,19 +1082,20 @@ Pukaarataa Chalaa Huun Main
       const sandboxThumb = document.getElementById('yt-sandbox-thumb');
       const fallbackBar = document.getElementById('yt-fallback-bar');
       const externalLink = document.getElementById('yt-external-link');
-      const btnLabel = document.getElementById('yt-btn-label');
 
       if (!song) return;
-      urlInput.value = song.youtubeId ? `https://youtu.be/${song.youtubeId}` : '';
-      btnLabel.textContent = song.youtubeId ? 'Backing Track ●' : 'Backing Track';
 
       if (!song.youtubeId) {
+        if (toggleBtn) toggleBtn.classList.add('hidden');
+        if (drawer) drawer.classList.add('hidden');
         embedWrapper.classList.add('hidden');
         sandboxCard.classList.add('hidden');
         fallbackBar.classList.add('hidden');
         iframe.src = '';
         return;
       }
+
+      if (toggleBtn) toggleBtn.classList.remove('hidden');
 
       const watchUrl = `https://www.youtube.com/watch?v=${song.youtubeId}`;
       const isSandboxedOrFile = window.location.protocol === 'file:' || window.location.origin === 'null' || window.self !== window.top;
@@ -1416,9 +1134,9 @@ Pukaarataa Chalaa Huun Main
         transposeResetBtn.textContent = sign;
       }
 
-      document.getElementById('inline-bpm-input').value = song.bpm || 96;
-      document.getElementById('inline-timesig-select').value = song.timeSignature || '4/4';
-      document.getElementById('inline-swing-label').textContent = song.swing ? 'Yes' : 'No';
+      document.getElementById('readonly-bpm-display').textContent = song.bpm || 96;
+      document.getElementById('readonly-timesig-display').textContent = song.timeSignature || '4/4';
+      document.getElementById('readonly-swing-label').textContent = song.swing ? 'Yes' : 'No';
       document.getElementById('song-title-display').textContent = song.title;
 
       const tagsDisplay = document.getElementById('song-tags-display');
@@ -1434,25 +1152,36 @@ Pukaarataa Chalaa Huun Main
       updateYouTubePlayerUI(song);
     }
 
-    function renderAll() {
-      renderSidebar();
-      renderSongHeader();
-      renderChordSheet();
-      updateDriveSyncUI();
-    }
+    function renderChordSheet() {
+      const song = getActiveSong();
+      const output = document.getElementById('chord-sheet-output');
+      if (!song || !output) return;
 
-    function selectSong(songId) {
-      // Stop any active playback from the previous song
-      stopMetronome();
-      stopAutoScroll();
-      const iframe = document.getElementById('yt-iframe');
-      if (iframe) iframe.src = '';
+      output.style.fontSize = `${state.fontSizePx}px`;
+      const lines = (song.content || '').split('\n');
+      const htmlLines = lines.map(rawLine => {
+        if (!rawLine.trim()) {
+          return '<div class="h-4"></div>';
+        }
+        const trimmed = rawLine.trim();
+        if (/^\[.*\]$/.test(trimmed)) {
+          return `<div class="mt-4 mb-1 font-sans text-xs sm:text-sm font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">${escapeHtml(trimmed)}</div>`;
+        }
+        if (/^\(.*\)$/.test(trimmed)) {
+          return `<div class="my-1.5 font-sans italic text-xs sm:text-sm text-stone-500 dark:text-stone-400">${escapeHtml(trimmed)}</div>`;
+        }
+        if (isChordLine(rawLine)) {
+          const transposedLine = transposeChordLinePreservingSpacing(rawLine, state.transposeSteps);
+          const highlighted = escapeHtml(transposedLine).replace(
+            /([A-G](?:#|b)?(?:M7|maj7|maj9|maj|min7|min|m7b5|m7|m9|m11|m6|m|dim7|dim|aug|sus2|sus4|sus|add9|add11|6|7|9|11|13)?(?:\/[A-G](?:#|b)?)?)/g,
+            '<span class="font-bold text-amber-700 dark:text-amber-400">$1</span>'
+          );
+          return `<div class="whitespace-pre overflow-x-auto leading-snug pt-1">${highlighted}</div>`;
+        }
+        return `<div class="whitespace-pre overflow-x-auto leading-relaxed text-stone-800 dark:text-parchment-100">${escapeHtml(rawLine)}</div>`;
+      });
 
-      state.activeSongId = songId;
-      state.transposeSteps = 0;
-      saveLibraryToLocal();
-      renderAll();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      output.innerHTML = htmlLines.join('');
     }
 
     function closeMobileSidebar() {
@@ -1462,21 +1191,171 @@ Pukaarataa Chalaa Huun Main
       if (backdrop) backdrop.classList.add('hidden');
     }
 
-    // ============================================================================
-    // EVENT LISTENERS & APP BOOTSTRAP
-    // ============================================================================
-    function applyTheme(theme) {
-      const html = document.documentElement;
-      if (theme === 'light') {
-        html.classList.remove('dark');
-      } else {
-        html.classList.add('dark');
+    function selectSong(songId) {
+      if (state.activeSongId === songId) {
+        closeMobileSidebar();
+        return;
       }
-      try { localStorage.setItem(THEME_KEY, theme); } catch (e) {}
+      stopMetronome();
+      stopAutoScroll();
+      const ytDrawer = document.getElementById('youtube-drawer');
+      if (ytDrawer) ytDrawer.classList.add('hidden');
+      const iframe = document.getElementById('yt-iframe');
+      if (iframe) iframe.src = '';
+
+      state.activeSongId = songId;
+      state.transposeSteps = 0;
+      saveLibraryToLocal();
+      renderAll();
+      closeMobileSidebar();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function renderSidebar() {
+      const listContainer = document.getElementById('song-list-container');
+      const tagContainer = document.getElementById('tag-pills-container');
+      const keySelect = document.getElementById('filter-key-select');
+      const timeSigSelect = document.getElementById('filter-timesig-select');
+      const countLabel = document.getElementById('song-count-label');
+      const clearSearchBtn = document.getElementById('clear-search-btn');
+      const clearFiltersBtn = document.getElementById('clear-filters-btn');
+
+      if (!listContainer) return;
+
+      const hasActiveFilters = Boolean(state.searchQuery || state.selectedTag || state.selectedKey || state.selectedTimeSig);
+      if (clearSearchBtn) {
+        clearSearchBtn.classList.toggle('hidden', !state.searchQuery);
+      }
+      if (clearFiltersBtn) {
+        clearFiltersBtn.classList.toggle('hidden', !hasActiveFilters);
+      }
+
+      // Populate dynamic Key & Time Signature filter dropdowns from loaded songs
+      const allKeys = new Set();
+      const allTimeSigs = new Set();
+      const allTags = new Set();
+
+      state.songs.forEach(s => {
+        if (s.key) allKeys.add(normalizeChordToken(s.key));
+        if (s.timeSignature) allTimeSigs.add(s.timeSignature.trim());
+        (s.tags || []).forEach(t => allTags.add(t));
+      });
+
+      if (keySelect) {
+        const sortedKeys = Array.from(allKeys).sort();
+        keySelect.innerHTML = '<option value="">All Keys</option>' +
+          sortedKeys.map(k => `<option value="${escapeHtml(k)}" ${state.selectedKey === k ? 'selected' : ''}>${escapeHtml(k)}</option>`).join('');
+      }
+
+      if (timeSigSelect) {
+        const sortedSigs = Array.from(allTimeSigs).sort();
+        timeSigSelect.innerHTML = '<option value="">All Times</option>' +
+          sortedSigs.map(ts => `<option value="${escapeHtml(ts)}" ${state.selectedTimeSig === ts ? 'selected' : ''}>${escapeHtml(ts)}</option>`).join('');
+      }
+
+      if (tagContainer) {
+        tagContainer.innerHTML = '';
+        Array.from(allTags).sort().forEach(tag => {
+          const isSelected = state.selectedTag === tag;
+          const btn = document.createElement('button');
+          btn.className = `px-2.5 py-1 rounded-lg font-mono text-[11px] font-semibold transition ${
+            isSelected
+              ? 'bg-amber-600 text-white shadow-xs'
+              : 'bg-parchment-200/80 dark:bg-espresso-800 text-stone-700 dark:text-stone-300 hover:bg-amber-500/20'
+          }`;
+          btn.textContent = tag;
+          btn.addEventListener('click', () => {
+            state.selectedTag = isSelected ? null : tag;
+            renderSidebar();
+          });
+          tagContainer.appendChild(btn);
+        });
+      }
+
+      const q = state.searchQuery.trim().toLowerCase();
+      const filtered = state.songs.filter(song => {
+        const normalizedSongKey = normalizeChordToken(song.key || '');
+        const matchesKey = !state.selectedKey || normalizedSongKey === state.selectedKey;
+        const matchesTimeSig = !state.selectedTimeSig || (song.timeSignature || '').trim() === state.selectedTimeSig;
+        const matchesTag = !state.selectedTag || (song.tags || []).includes(state.selectedTag);
+        const matchesQuery = !q ||
+          song.title.toLowerCase().includes(q) ||
+          normalizedSongKey.toLowerCase().includes(q) ||
+          (song.timeSignature || '').toLowerCase().includes(q) ||
+          (song.tags || []).some(t => t.toLowerCase().includes(q)) ||
+          (song.content || '').toLowerCase().includes(q);
+        return matchesKey && matchesTimeSig && matchesTag && matchesQuery;
+      });
+
+      if (countLabel) {
+        countLabel.textContent = `${filtered.length} of ${state.songs.length} song${state.songs.length === 1 ? '' : 's'}`;
+      }
+
+      listContainer.innerHTML = '';
+      if (filtered.length === 0) {
+        listContainer.innerHTML = `<div class="p-4 text-center text-xs text-stone-500 dark:text-stone-400">No matching songs found.</div>`;
+        return;
+      }
+
+      filtered.forEach(song => {
+        const isActive = song.id === state.activeSongId;
+        const item = document.createElement('button');
+        item.className = `w-full text-left p-3 rounded-xl border transition flex items-start justify-between gap-2 ${
+          isActive
+            ? 'bg-amber-500/15 border-amber-500/50 text-stone-900 dark:text-parchment-50 shadow-2xs'
+            : 'bg-transparent border-transparent hover:bg-parchment-200/60 dark:hover:bg-espresso-800/70 text-stone-700 dark:text-stone-300'
+        }`;
+        item.innerHTML = `
+          <div class="min-w-0 flex-1">
+            <div class="font-semibold text-xs sm:text-sm truncate ${isActive ? 'text-amber-800 dark:text-amber-300' : ''}">${escapeHtml(song.title)}</div>
+            <div class="flex items-center gap-2 mt-1 text-[11px] font-mono text-stone-500 dark:text-stone-400">
+              <span>Key: ${escapeHtml(song.key || 'C')}</span>
+              <span>·</span>
+              <span>${song.bpm || 96} BPM</span>
+              <span>·</span>
+              <span>${escapeHtml(song.timeSignature || '4/4')}</span>
+            </div>
+          </div>
+        `;
+        item.addEventListener('click', () => selectSong(song.id));
+        listContainer.appendChild(item);
+      });
+    }
+
+    function renderAll() {
+      renderSidebar();
+      renderSongHeader();
+      renderChordSheet();
+      updateDriveSyncUI();
+    }
+
+    function renderSessionComments() {
+      const box = document.getElementById('session-comments-box');
+      const list = document.getElementById('session-comments-list');
+      if (!box || !list) return;
+
+      if (!state.visitorComments || state.visitorComments.length === 0) {
+        box.classList.add('hidden');
+        return;
+      }
+
+      box.classList.remove('hidden');
+      list.innerHTML = '';
+      state.visitorComments.forEach(c => {
+        const item = document.createElement('div');
+        item.className = 'p-2.5 rounded-xl bg-parchment-100 dark:bg-espresso-850 border border-stone-200 dark:border-espresso-700 text-xs';
+        item.innerHTML = `
+          <div class="flex items-center justify-between text-[11px] text-stone-500 dark:text-stone-400 mb-0.5">
+            <span class="font-semibold text-amber-700 dark:text-amber-400">${escapeHtml(c.topic)}</span>
+            <span>${escapeHtml(c.date)}</span>
+          </div>
+          <p class="text-stone-700 dark:text-parchment-100">${escapeHtml(c.message)}</p>
+        `;
+        list.appendChild(item);
+      });
     }
 
     function setupEventListeners() {
-      // Sidebar toggle
       document.getElementById('toggle-sidebar-btn').addEventListener('click', () => {
         const sidebar = document.getElementById('library-sidebar');
         const backdrop = document.getElementById('sidebar-backdrop');
@@ -1491,13 +1370,11 @@ Pukaarataa Chalaa Huun Main
       document.getElementById('close-sidebar-btn').addEventListener('click', closeMobileSidebar);
       document.getElementById('sidebar-backdrop').addEventListener('click', closeMobileSidebar);
 
-      // Theme toggle
       document.getElementById('theme-toggle-btn').addEventListener('click', () => {
         const isDark = document.documentElement.classList.contains('dark');
         applyTheme(isDark ? 'light' : 'dark');
       });
 
-      // Font size controls
       const adjustFont = delta => {
         state.fontSizePx = Math.max(11, Math.min(26, state.fontSizePx + delta));
         renderChordSheet();
@@ -1507,7 +1384,6 @@ Pukaarataa Chalaa Huun Main
       document.getElementById('font-dec-btn-mobile').addEventListener('click', () => adjustFont(-1));
       document.getElementById('font-inc-btn-mobile').addEventListener('click', () => adjustFont(1));
 
-      // Search & tag filter
       document.getElementById('search-input').addEventListener('input', e => {
         state.searchQuery = e.target.value;
         renderSidebar();
@@ -1517,102 +1393,30 @@ Pukaarataa Chalaa Huun Main
         document.getElementById('search-input').value = '';
         renderSidebar();
       });
-      document.getElementById('clear-tag-btn').addEventListener('click', () => {
+      document.getElementById('filter-key-select').addEventListener('change', e => {
+        state.selectedKey = e.target.value;
+        renderSidebar();
+      });
+      document.getElementById('filter-timesig-select').addEventListener('change', e => {
+        state.selectedTimeSig = e.target.value;
+        renderSidebar();
+      });
+      document.getElementById('clear-filters-btn').addEventListener('click', () => {
+        state.searchQuery = '';
         state.selectedTag = null;
+        state.selectedKey = '';
+        state.selectedTimeSig = '';
+        document.getElementById('search-input').value = '';
         renderSidebar();
       });
 
-      // Inline BPM, Time Signature, Swing
-      document.getElementById('inline-bpm-input').addEventListener('change', e => {
-        const song = getActiveSong();
-        if (!song) return;
-        const val = Math.max(30, Math.min(300, parseInt(e.target.value, 10) || 96));
-        song.bpm = val;
-        song.rawMarkdown = buildMarkdownFromSong(song);
-        saveLibraryToLocal();
-        renderSongHeader();
-        renderSidebar();
-        pushSongToGoogleDrive(song, 'upsert');
-      });
+      document.getElementById('refresh-setlist-btn').addEventListener('click', () => pullSongsFromGoogleDrive(false));
+      document.getElementById('sidebar-refresh-btn').addEventListener('click', () => pullSongsFromGoogleDrive(false));
 
-      document.getElementById('inline-timesig-select').addEventListener('change', e => {
-        const song = getActiveSong();
-        if (!song) return;
-        song.timeSignature = e.target.value;
-        song.rawMarkdown = buildMarkdownFromSong(song);
-        saveLibraryToLocal();
-        renderSongHeader();
-        renderSidebar();
-        pushSongToGoogleDrive(song, 'upsert');
-      });
-
-      document.getElementById('inline-swing-btn').addEventListener('click', () => {
-        const song = getActiveSong();
-        if (!song) return;
-        song.swing = !song.swing;
-        song.rawMarkdown = buildMarkdownFromSong(song);
-        saveLibraryToLocal();
-        renderSongHeader();
-        pushSongToGoogleDrive(song, 'upsert');
-      });
-
-      // Inline Title Rename
-      const titleDisplay = document.getElementById('song-title-display');
-      const titleInput = document.getElementById('song-title-input');
-      const startTitleEdit = () => {
-        const song = getActiveSong();
-        if (!song) return;
-        titleInput.value = song.title;
-        titleDisplay.parentElement.classList.add('hidden');
-        titleInput.classList.remove('hidden');
-        titleInput.focus();
-        titleInput.select();
-      };
-      const commitTitleEdit = () => {
-        const song = getActiveSong();
-        titleInput.classList.add('hidden');
-        titleDisplay.parentElement.classList.remove('hidden');
-        if (!song) return;
-        const newTitle = titleInput.value.trim();
-        if (newTitle && newTitle !== song.title) {
-          const oldSong = { ...song };
-          song.title = newTitle;
-          song.rawMarkdown = buildMarkdownFromSong(song);
-          saveLibraryToLocal();
-          renderAll();
-          pushSongToGoogleDrive(oldSong, 'delete');
-          pushSongToGoogleDrive(song, 'upsert');
-          showToast('Song renamed!');
-        }
-      };
-      titleDisplay.addEventListener('click', startTitleEdit);
-      document.getElementById('rename-title-btn').addEventListener('click', startTitleEdit);
-      titleInput.addEventListener('blur', commitTitleEdit);
-      titleInput.addEventListener('keydown', e => {
-        if (e.key === 'Enter') commitTitleEdit();
-        if (e.key === 'Escape') {
-          titleInput.classList.add('hidden');
-          titleDisplay.parentElement.classList.remove('hidden');
-        }
-      });
-
-      // YouTube Drawer
       document.getElementById('toggle-yt-btn').addEventListener('click', () => {
         document.getElementById('youtube-drawer').classList.toggle('hidden');
       });
-      document.getElementById('save-yt-btn').addEventListener('click', () => {
-        const song = getActiveSong();
-        if (!song) return;
-        const raw = document.getElementById('yt-url-input').value;
-        song.youtubeId = extractYouTubeId(raw);
-        song.rawMarkdown = buildMarkdownFromSong(song);
-        saveLibraryToLocal();
-        updateYouTubePlayerUI(song);
-        pushSongToGoogleDrive(song, 'upsert');
-        showToast(song.youtubeId ? 'YouTube track linked!' : 'Cleared YouTube link.');
-      });
 
-      // Transpose Controls
       document.getElementById('transpose-down-btn').addEventListener('click', () => {
         state.transposeSteps = ((state.transposeSteps - 1 + 12) % 12);
         renderSongHeader();
@@ -1629,30 +1433,12 @@ Pukaarataa Chalaa Huun Main
         renderChordSheet();
       });
 
-      // Metronome Controls
       document.getElementById('metro-toggle-btn').addEventListener('click', toggleMetronome);
-      document.getElementById('metro-dec-btn').addEventListener('click', () => {
-        const song = getActiveSong();
-        if (!song) return;
-        song.bpm = Math.max(30, (song.bpm || 96) - 2);
-        saveLibraryToLocal();
-        renderSongHeader();
-        renderSidebar();
-      });
-      document.getElementById('metro-inc-btn').addEventListener('click', () => {
-        const song = getActiveSong();
-        if (!song) return;
-        song.bpm = Math.min(300, (song.bpm || 96) + 2);
-        saveLibraryToLocal();
-        renderSongHeader();
-        renderSidebar();
-      });
 
-      // Auto-Scroll Controls & Manual Interaction Pause
       document.getElementById('scroll-toggle-btn').addEventListener('click', toggleAutoScroll);
       document.getElementById('scroll-speed-slider').addEventListener('input', e => {
-        scrollSpeed = parseFloat(e.target.value) || 1.2;
-        document.getElementById('scroll-speed-label').textContent = scrollSpeed.toFixed(1) + 'x';
+        scrollSpeed = parseFloat(e.target.value) || 0.6;
+        document.getElementById('scroll-speed-label').textContent = scrollSpeed.toFixed(2).replace(/\.00$/, '.0') + 'x';
       });
       ['wheel', 'touchstart'].forEach(evt => {
         window.addEventListener(evt, () => {
@@ -1660,214 +1446,70 @@ Pukaarataa Chalaa Huun Main
         }, { passive: true });
       });
 
-      // Import / Edit Modal
-      const importModal = document.getElementById('import-modal');
-      const openImportModal = (editSong = null) => {
-        state.editingSongId = editSong ? editSong.id : null;
-        document.getElementById('modal-heading').textContent = editSong ? 'Edit Song Markdown' : 'Import .md Song(s)';
-        document.getElementById('file-upload-section').classList.toggle('hidden', Boolean(editSong));
-        document.getElementById('modal-divider').classList.toggle('hidden', Boolean(editSong));
-        document.getElementById('md-title-input').value = editSong ? editSong.title : '';
-        document.getElementById('md-paste-textarea').value = editSong ? (editSong.rawMarkdown || buildMarkdownFromSong(editSong)) : '';
-        importModal.classList.remove('hidden');
-        importModal.classList.add('flex');
+      const commentModal = document.getElementById('comment-modal');
+      const openCommentModal = () => {
+        const song = getActiveSong();
+        document.getElementById('comment-song-topic').value = song ? song.title : 'Nomad Raga Songbook';
+        document.getElementById('comment-message-text').value = '';
+        renderSessionComments();
+        commentModal.classList.remove('hidden');
+        commentModal.classList.add('flex');
       };
-      const closeImportModal = () => {
-        importModal.classList.add('hidden');
-        importModal.classList.remove('flex');
-        state.editingSongId = null;
+      const closeCommentModal = () => {
+        commentModal.classList.add('hidden');
+        commentModal.classList.remove('flex');
       };
 
-      document.getElementById('open-import-btn').addEventListener('click', () => openImportModal(null));
-      document.getElementById('edit-song-btn').addEventListener('click', () => openImportModal(getActiveSong()));
-      document.getElementById('close-modal-btn').addEventListener('click', closeImportModal);
-      document.getElementById('cancel-modal-btn').addEventListener('click', closeImportModal);
+      document.getElementById('open-comment-btn').addEventListener('click', openCommentModal);
+      document.getElementById('footer-comment-btn').addEventListener('click', openCommentModal);
+      document.getElementById('close-comment-modal-btn').addEventListener('click', closeCommentModal);
+      document.getElementById('cancel-comment-btn').addEventListener('click', closeCommentModal);
 
-      // Batch .md File Upload
-      document.getElementById('md-file-input').addEventListener('change', async e => {
-        const files = Array.from(e.target.files || []);
-        if (!files.length) return;
-        let importedCount = 0;
+      const buildCommentEmailContent = () => {
+        const name = document.getElementById('comment-visitor-name').value.trim() || 'Songbook Visitor';
+        const visitorEmail = document.getElementById('comment-visitor-email').value.trim();
+        const topic = document.getElementById('comment-song-topic').value.trim() || 'Nomad Raga Songbook';
+        const msg = document.getElementById('comment-message-text').value.trim();
+        const subject = `[Nomad Raga Songbook] ${topic} — Note from ${name}`;
+        const emailLine = visitorEmail ? `Reply-To Email: ${visitorEmail}\n` : '';
+        const body = `Song / Topic: ${topic}\nFrom: ${name}\n${emailLine}\nComment:\n${msg}\n\n---\nSent via jam.nomadraga.live`;
+        return { name, visitorEmail, topic, msg, subject, body };
+      };
 
-        for (const file of files) {
-          const text = await file.text();
-          const parsed = parseMarkdownSong(text, file.name);
-          const existingIdx = state.songs.findIndex(s => s.title.toLowerCase() === parsed.title.toLowerCase());
-          if (existingIdx !== -1) {
-            parsed.id = state.songs[existingIdx].id;
-            state.songs[existingIdx] = parsed;
-          } else {
-            state.songs.unshift(parsed);
-          }
-          pushSongToGoogleDrive(parsed, 'upsert');
-          importedCount++;
-        }
-
-        state.activeSongId = state.songs[0].id;
-        state.transposeSteps = 0;
-        saveLibraryToLocal();
-        renderAll();
-        e.target.value = '';
-        closeImportModal();
-        showToast(`Imported ${importedCount} song(s)!`, 'success');
-      });
-
-      // Save Pasted / Edited Markdown
-      document.getElementById('save-md-btn').addEventListener('click', () => {
-        const raw = document.getElementById('md-paste-textarea').value.trim();
-        const customTitle = document.getElementById('md-title-input').value.trim();
-        if (!raw) {
-          showToast('Please paste Markdown content or upload a .md file.', 'error');
+      document.getElementById('copy-comment-email-btn').addEventListener('click', () => {
+        const { msg, subject, body } = buildCommentEmailContent();
+        if (!msg) {
+          showToast('Please write a comment first.', 'error');
           return;
         }
-
-        const parsed = parseMarkdownSong(raw, customTitle || 'Untitled Song');
-        if (customTitle) parsed.title = customTitle;
-        parsed.rawMarkdown = buildMarkdownFromSong(parsed);
-
-        if (state.editingSongId) {
-          const idx = state.songs.findIndex(s => s.id === state.editingSongId);
-          if (idx !== -1) {
-            const oldSong = state.songs[idx];
-            parsed.id = oldSong.id;
-            state.songs[idx] = parsed;
-            if (oldSong.title !== parsed.title) {
-              pushSongToGoogleDrive(oldSong, 'delete');
-            }
-          }
-        } else {
-          state.songs.unshift(parsed);
-          state.activeSongId = parsed.id;
-        }
-
-        saveLibraryToLocal();
-        renderAll();
-        pushSongToGoogleDrive(parsed, 'upsert');
-        closeImportModal();
-        showToast('Song saved!', 'success');
-      });
-
-      // Delete Song Confirmation Modal
-      const confirmModal = document.getElementById('confirm-modal');
-      document.getElementById('delete-song-btn').addEventListener('click', () => {
-        const song = getActiveSong();
-        if (!song) return;
-        document.getElementById('confirm-message').textContent = `Remove "${song.title}" from your songbook?`;
-        confirmModal.classList.remove('hidden');
-        confirmModal.classList.add('flex');
-      });
-      document.getElementById('confirm-cancel-btn').addEventListener('click', () => {
-        confirmModal.classList.add('hidden');
-        confirmModal.classList.remove('flex');
-      });
-      document.getElementById('confirm-ok-btn').addEventListener('click', () => {
-        const song = getActiveSong();
-        confirmModal.classList.add('hidden');
-        confirmModal.classList.remove('flex');
-        if (!song) return;
-
-        pushSongToGoogleDrive(song, 'delete');
-        state.songs = state.songs.filter(s => s.id !== song.id);
-        if (state.songs.length === 0) {
-          state.songs = [parseMarkdownSong(STARTER_SONG_MD, 'Bekaraar x Pukaarataa (Mashup).md')];
-        }
-        state.activeSongId = state.songs[0].id;
-        state.transposeSteps = 0;
-        saveLibraryToLocal();
-        renderAll();
-        showToast('Song removed.');
-      });
-
-      // Export / Restore songs.json
-      document.getElementById('export-json-btn').addEventListener('click', () => {
-        const blob = new Blob([JSON.stringify(state.songs, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'songs.json';
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
-        showToast('Exported songs.json backup!', 'success');
-      });
-
-      document.getElementById('restore-json-input').addEventListener('change', async e => {
-        const file = e.target.files && e.target.files[0];
-        if (!file) return;
-        try {
-          const parsed = JSON.parse(await file.text());
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            state.songs = parsed;
-            state.activeSongId = state.songs[0].id;
-            saveLibraryToLocal();
-            renderAll();
-            showToast(`Restored ${parsed.length} song(s) from JSON!`, 'success');
-          }
-        } catch (err) {
-          showToast('Invalid JSON backup file.', 'error');
-        }
-        e.target.value = '';
-      });
-
-      // Google Drive Sync Modal Listeners
-      const gdriveModal = document.getElementById('gdrive-modal');
-      document.getElementById('open-gdrive-btn').addEventListener('click', () => {
-        document.getElementById('gdrive-folder-input').value = state.gdriveFolderId || DEFAULT_GDRIVE_FOLDER_ID;
-        document.getElementById('gdrive-url-input').value = state.gdriveUrl || '';
-        updateDriveSyncUI();
-        gdriveModal.classList.remove('hidden');
-        gdriveModal.classList.add('flex');
-      });
-      document.getElementById('close-gdrive-modal-btn').addEventListener('click', () => {
-        gdriveModal.classList.add('hidden');
-        gdriveModal.classList.remove('flex');
-      });
-      document.getElementById('save-gdrive-url-btn').addEventListener('click', () => {
-        const urlVal = document.getElementById('gdrive-url-input').value.trim();
-        const folderVal = extractFolderId(document.getElementById('gdrive-folder-input').value);
-        if (!urlVal.startsWith('https://script.google.com/')) {
-          showToast('Please enter a valid Google Apps Script Web App URL.', 'error');
-          return;
-        }
-        state.gdriveUrl = urlVal;
-        state.gdriveFolderId = folderVal;
-        try {
-          localStorage.setItem(GDRIVE_SYNC_URL_KEY, urlVal);
-          localStorage.setItem(GDRIVE_FOLDER_ID_KEY, folderVal);
-        } catch (e) {}
-        pullSongsFromGoogleDrive(false);
-      });
-      document.getElementById('gdrive-pull-now-btn').addEventListener('click', () => pullSongsFromGoogleDrive(false));
-      document.getElementById('gdrive-push-now-btn').addEventListener('click', async () => {
-        for (const s of state.songs) {
-          await pushSongToGoogleDrive(s, 'upsert');
-        }
-        showToast(`Pushed ${state.songs.length} song(s) to Google Drive!`, 'success');
-      });
-      document.getElementById('gdrive-disconnect-btn').addEventListener('click', () => {
-        state.gdriveUrl = '';
-        try { localStorage.setItem(GDRIVE_SYNC_URL_KEY, ''); } catch (e) {}
-        const urlInput = document.getElementById('gdrive-url-input');
-        if (urlInput) urlInput.value = '';
-        updateDriveSyncUI();
-        showToast('Paused Google Drive sync.');
-      });
-      document.getElementById('copy-apps-script-btn').addEventListener('click', () => {
-        const code = document.getElementById('apps-script-snippet').textContent;
         const ta = document.createElement('textarea');
-        ta.value = code;
+        ta.value = `To: ${FEEDBACK_EMAIL}\nSubject: ${subject}\n\n${body}`;
         document.body.appendChild(ta);
         ta.select();
         document.execCommand('copy');
         ta.remove();
-        showToast('Apps Script code copied!', 'success');
+        showToast('Comment & email address copied to clipboard!', 'success');
       });
-      document.getElementById('copy-magic-link-btn').addEventListener('click', () => {
-        const input = document.getElementById('gdrive-magic-link');
-        input.select();
-        document.execCommand('copy');
-        showToast('1-Tap Sync Link copied!', 'success');
+
+      document.getElementById('send-comment-email-btn').addEventListener('click', () => {
+        const { topic, msg, subject, body } = buildCommentEmailContent();
+        if (!msg) {
+          showToast('Please enter your comment before sending.', 'error');
+          return;
+        }
+
+        state.visitorComments.unshift({
+          topic,
+          message: msg,
+          date: new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+        });
+        saveVisitorComments();
+        renderSessionComments();
+
+        const mailtoUrl = `mailto:${FEEDBACK_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        window.location.href = mailtoUrl;
+        showToast(`Opening email to ${FEEDBACK_EMAIL}...`, 'success');
+        closeCommentModal();
       });
     }
 
@@ -1878,9 +1520,7 @@ Pukaarataa Chalaa Huun Main
         if (savedTheme) applyTheme(savedTheme);
       } catch (e) {}
 
-      const driveCfg = extractDriveConfigFromUrl();
-      state.gdriveUrl = driveCfg.url;
-      state.gdriveFolderId = driveCfg.folderId;
+      loadVisitorComments();
 
       const loadedLocal = loadLibraryFromLocal();
       if (!loadedLocal || state.songs.length === 0) {
@@ -1893,9 +1533,7 @@ Pukaarataa Chalaa Huun Main
       setupEventListeners();
       renderAll();
 
-      if (state.gdriveUrl) {
-        pullSongsFromGoogleDrive(true);
-      }
+      pullSongsFromGoogleDrive(true);
     });
   </script>
 </body>
