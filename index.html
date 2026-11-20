@@ -125,14 +125,6 @@
           <span>Refresh Setlist</span>
         </button>
 
-        <!-- Visitor Comment / Feedback Button -->
-        <button id="open-comment-btn" title="Send a Comment or Song Request" class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs sm:text-sm font-semibold shadow-sm transition active:scale-95">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-          </svg>
-          <span class="hidden sm:inline">Comment</span>
-        </button>
-
         <!-- Theme Toggle -->
         <button id="theme-toggle-btn" title="Toggle Stage Dark / Outdoor Light Mode" class="p-2.5 rounded-xl bg-parchment-200/80 dark:bg-espresso-800 hover:bg-stone-300/70 dark:hover:bg-espresso-700 text-stone-700 dark:text-amber-300 transition active:scale-95">
           <svg id="icon-sun" class="w-4 h-4 hidden dark:block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -304,15 +296,12 @@
         <!-- Rendered Monospace Chord & Lyric Sheet -->
         <div id="chord-sheet-output" class="chord-sheet-container rounded-2xl bg-white dark:bg-espresso-900/60 border border-stone-200/90 dark:border-espresso-800 p-4 sm:p-7 shadow-xs text-[14px] sm:text-[16px] select-text"></div>
 
-        <!-- Visitor Comment Prompt Strip -->
-        <div class="mt-6 rounded-2xl bg-parchment-100/80 dark:bg-espresso-900/70 border border-stone-200 dark:border-espresso-800 p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div class="text-center sm:text-left">
-            <p class="text-sm font-semibold text-stone-800 dark:text-parchment-100">Have a comment, chord correction, or song request?</p>
-            <p class="text-xs text-stone-500 dark:text-stone-400">Send a quick note straight to Nomad Raga (<code>nomadraga10@gmail.com</code>).</p>
-          </div>
-          <button id="footer-comment-btn" class="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs sm:text-sm font-semibold shadow-sm transition shrink-0">
-            Leave a Comment
-          </button>
+        <!-- Contact Note Strip -->
+        <div class="mt-6 rounded-2xl bg-parchment-100/80 dark:bg-espresso-900/70 border border-stone-200 dark:border-espresso-800 p-4 text-center">
+          <p class="text-sm font-semibold text-stone-800 dark:text-parchment-100">Have a comment, chord correction, or song request?</p>
+          <p class="text-xs text-stone-500 dark:text-stone-400 mt-1">
+            Send a quick note straight to Nomad Raga (<a href="mailto:nomadraga10@gmail.com" class="font-mono text-amber-700 dark:text-amber-400 hover:underline">nomadraga10@gmail.com</a>).
+          </p>
         </div>
 
       </div>
@@ -365,64 +354,6 @@
     </div>
   </div>
 
-  <!-- Visitor Comment / Feedback Modal (Emails nomadraga10@gmail.com) -->
-  <div id="comment-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-3 sm:p-5 bg-black/70 backdrop-blur-xs">
-    <div class="bg-parchment-50 dark:bg-espresso-900 border border-stone-300 dark:border-espresso-700 rounded-2xl w-full max-w-lg flex flex-col shadow-2xl overflow-hidden">
-      <div class="px-5 py-4 border-b border-stone-200 dark:border-espresso-800 flex items-center justify-between">
-        <div>
-          <h3 class="text-base sm:text-lg font-bold">Send a Comment to Nomad Raga</h3>
-          <p class="text-xs text-stone-500 dark:text-stone-400">Your note will be addressed to <strong>nomadraga10@gmail.com</strong>.</p>
-        </div>
-        <button id="close-comment-modal-btn" class="p-2 rounded-xl hover:bg-stone-200 dark:hover:bg-espresso-800 transition">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-
-      <div class="p-5 space-y-3.5 text-xs sm:text-sm">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label for="comment-visitor-name" class="block text-xs font-semibold uppercase tracking-wider text-stone-500 dark:text-stone-400 mb-1">Your Name (optional)</label>
-            <input id="comment-visitor-name" type="text" placeholder="e.g. Aarav / Jammer" class="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-espresso-950 border border-stone-300 dark:border-espresso-700 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500" />
-          </div>
-          <div>
-            <label for="comment-visitor-email" class="block text-xs font-semibold uppercase tracking-wider text-stone-500 dark:text-stone-400 mb-1">Your Email (optional)</label>
-            <input id="comment-visitor-email" type="email" placeholder="you@example.com" class="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-espresso-950 border border-stone-300 dark:border-espresso-700 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500" />
-          </div>
-        </div>
-
-        <div>
-          <label for="comment-song-topic" class="block text-xs font-semibold uppercase tracking-wider text-stone-500 dark:text-stone-400 mb-1">Song / Topic</label>
-          <input id="comment-song-topic" type="text" class="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-espresso-950 border border-stone-300 dark:border-espresso-700 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500" />
-        </div>
-
-        <div>
-          <label for="comment-message-text" class="block text-xs font-semibold uppercase tracking-wider text-stone-500 dark:text-stone-400 mb-1">Your Comment or Song Request</label>
-          <textarea id="comment-message-text" rows="4" placeholder="Write your feedback, chord note, or mashup request..." class="w-full p-3.5 rounded-xl bg-white dark:bg-espresso-950 border border-stone-300 dark:border-espresso-700 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 leading-relaxed"></textarea>
-        </div>
-
-        <!-- Recent Visitor Notes Sent in This Session -->
-        <div id="session-comments-box" class="hidden pt-2 border-t border-stone-200 dark:border-espresso-800 space-y-1.5">
-          <span class="text-[11px] font-semibold uppercase tracking-wider text-stone-500 dark:text-stone-400 block">Your Recent Notes</span>
-          <div id="session-comments-list" class="space-y-1.5 max-h-28 overflow-y-auto"></div>
-        </div>
-      </div>
-
-      <div class="px-5 py-3.5 border-t border-stone-200 dark:border-espresso-800 flex flex-wrap items-center justify-between gap-2 bg-parchment-100/60 dark:bg-espresso-950/60">
-        <button id="copy-comment-email-btn" class="px-3.5 py-2 rounded-xl bg-stone-200 dark:bg-espresso-800 hover:bg-stone-300 dark:hover:bg-espresso-700 text-xs font-semibold transition">
-          Copy Email Text
-        </button>
-        <div class="flex items-center gap-2">
-          <button id="cancel-comment-btn" class="px-4 py-2 rounded-xl bg-stone-200 dark:bg-espresso-800 hover:bg-stone-300 dark:hover:bg-espresso-700 text-xs sm:text-sm font-semibold transition">Cancel</button>
-          <button id="send-comment-email-btn" class="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs sm:text-sm font-semibold shadow-sm transition">
-            Email nomadraga10@gmail.com
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <script>
     // ============================================================================
     // DATA & STARTER SONG CONFIGURATION (READ-ONLY PUBLIC SETLIST)
@@ -430,8 +361,6 @@
     const STORAGE_KEY = 'nomad_raga_songbook_v1';
     const ACTIVE_SONG_KEY = 'nomad_raga_active_song_v1';
     const THEME_KEY = 'nomad_raga_theme';
-    const COMMENTS_STORAGE_KEY = 'nomad_raga_visitor_comments_v1';
-    const FEEDBACK_EMAIL = 'nomadraga10@gmail.com';
     const DEFAULT_GDRIVE_SYNC_URL = 'https://script.google.com/macros/s/AKfycbxN0r10l7jx8XyseBzuBkHJ7AqlP1RFN4YlwDm21RrlhC4pOVR7TZnhSoIavNZgVgFs/exec';
     const DEFAULT_GDRIVE_FOLDER_ID = '1tm_iUo8HAdVslNVYde7LJ3sLRicavgq6';
 
@@ -505,8 +434,7 @@ Pukaarataa Chalaa Huun Main
       storageAvailable: true,
       gdriveUrl: DEFAULT_GDRIVE_SYNC_URL,
       gdriveFolderId: DEFAULT_GDRIVE_FOLDER_ID,
-      isSyncingDrive: false,
-      visitorComments: []
+      isSyncingDrive: false
     };
 
     // ============================================================================
@@ -563,24 +491,6 @@ Pukaarataa Chalaa Huun Main
       return false;
     }
 
-    function loadVisitorComments() {
-      if (!state.storageAvailable) return;
-      try {
-        const raw = localStorage.getItem(COMMENTS_STORAGE_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed)) state.visitorComments = parsed;
-        }
-      } catch (e) {}
-    }
-
-    function saveVisitorComments() {
-      if (!state.storageAvailable) return;
-      try {
-        localStorage.setItem(COMMENTS_STORAGE_KEY, JSON.stringify(state.visitorComments.slice(0, 20)));
-      } catch (e) {}
-    }
-
     function applyTheme(theme) {
       if (theme === 'light') {
         document.documentElement.classList.remove('dark');
@@ -626,64 +536,102 @@ Pukaarataa Chalaa Huun Main
     }
 
     // ============================================================================
-    // MARKDOWN & CHORD PARSER + TRANSPOSITION ENGINE
+    // CHORD PARSER & MONOSPACE-PRESERVING TRANSPOSITION ENGINE
     // ============================================================================
-    const CHROMATIC_SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-    const FLAT_TO_SHARP = { Db: 'C#', Eb: 'D#', Gb: 'F#', Ab: 'G#', Bb: 'A#' };
-    const CHORD_TOKEN_REGEX = /^([A-G](?:#|b)?)(M7|maj7|maj9|maj|min7|min|m7b5|m7|m9|m11|m6|m|M|dim7|dim|aug|sus2|sus4|sus|add9|add11|6|7|9|11|13)?(\/[A-G](?:#|b)?)?$/;
+    const SHARP_SCALE = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const FLAT_SCALE  = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+    const NOTE_TO_INDEX = {
+      'C': 0, 'B#': 0,
+      'C#': 1, 'Db': 1,
+      'D': 2,
+      'D#': 3, 'Eb': 3,
+      'E': 4, 'Fb': 4,
+      'F': 5, 'E#': 5,
+      'F#': 6, 'Gb': 6,
+      'G': 7,
+      'G#': 8, 'Ab': 8,
+      'A': 9,
+      'A#': 10, 'Bb': 10,
+      'B': 11, 'Cb': 11
+    };
+
+    const CHORD_TOKEN_REGEX = /^[A-G](?:#|b)?(?:M7|maj7|maj9|maj|min7|min|m7b5|m7|m9|m11|m6|m|dim7|dim|aug|sus2|sus4|sus|add9|add11|6|7|9|11|13)?(?:\/[A-G](?:#|b)?)?$/;
 
     function normalizeChordToken(token) {
-      const m = token.match(CHORD_TOKEN_REGEX);
-      if (!m) return token;
-      let [, root, quality = '', bass = ''] = m;
-      if (quality === 'M') quality = 'm';
-      return `${root}${quality}${bass}`;
+      return String(token || '').replace(/^([A-G](?:#|b)?)M(?!aj|7|9|11|13)/, '$1m');
     }
 
     function isChordLine(line) {
-      const trimmed = line.trim();
+      const trimmed = String(line || '').trim();
       if (!trimmed) return false;
       if (/^\[.*\]$/.test(trimmed) || /^\(.*\)$/.test(trimmed)) return false;
+
       const tokens = trimmed.split(/\s+/);
       let chordCount = 0;
-      for (const tok of tokens) {
-        const clean = tok.replace(/[|()[\].,:;*]/g, '');
-        if (!clean) continue;
-        if (CHORD_TOKEN_REGEX.test(clean)) {
+      for (const rawTok of tokens) {
+        const cleaned = rawTok.replace(/^[|()[\].,:;*]+|[|()[\].,:;*]+$/g, '');
+        if (!cleaned) continue;
+        const normalized = normalizeChordToken(cleaned);
+        if (CHORD_TOKEN_REGEX.test(normalized)) {
           chordCount++;
-        } else if (!/^([xX]\d+|\d+[xX]|\/|-|NC|N\.C\.)$/.test(clean)) {
+        } else {
           return false;
         }
       }
       return chordCount > 0;
     }
 
-    function transposeNote(note, semitones) {
-      const norm = FLAT_TO_SHARP[note] || note;
-      const idx = CHROMATIC_SHARP.indexOf(norm);
-      if (idx === -1) return note;
-      const nextIdx = (idx + semitones + 120) % 12;
-      return CHROMATIC_SHARP[nextIdx];
+    function transposeNote(root, steps, preferFlats = false) {
+      const idx = NOTE_TO_INDEX[root];
+      if (idx === undefined) return root;
+      const newIdx = ((idx + steps) % 12 + 12) % 12;
+      return preferFlats ? FLAT_SCALE[newIdx] : SHARP_SCALE[newIdx];
     }
 
-    function transposeSingleChord(token, semitones) {
-      const normalized = normalizeChordToken(token);
-      const m = normalized.match(CHORD_TOKEN_REGEX);
-      if (!m) return normalized;
-      const [, root, quality = '', bass = ''] = m;
-      const newRoot = transposeNote(root, semitones);
-      const newBass = bass ? '/' + transposeNote(bass.slice(1), semitones) : '';
+    function transposeSingleChord(chordToken, steps) {
+      const normalized = normalizeChordToken(chordToken);
+      if (!steps || steps % 12 === 0) return normalized;
+
+      const match = normalized.match(/^([A-G](?:#|b)?)([^/]*)(?:\/([A-G](?:#|b)?))?$/);
+      if (!match) return normalized;
+
+      const [, root, quality, bass] = match;
+      const preferFlats = root.includes('b') || (bass && bass.includes('b'));
+      const newRoot = transposeNote(root, steps, preferFlats);
+      const newBass = bass ? '/' + transposeNote(bass, steps, preferFlats) : '';
       return `${newRoot}${quality}${newBass}`;
     }
 
-    function transposeChordLinePreservingSpacing(line, semitones) {
-      return line.replace(/\S+/g, (match) => {
-        const cleanMatch = match.match(/^([|()[\]]*)([A-G](?:#|b)?(?:M7|maj7|maj9|maj|min7|min|m7b5|m7|m9|m11|m6|m|M|dim7|dim|aug|sus2|sus4|sus|add9|add11|6|7|9|11|13)?(?:\/[A-G](?:#|b)?)?)([|()[\].,:;*]*)$/);
-        if (!cleanMatch) return match;
-        const [, prefix, chordCore, suffix] = cleanMatch;
-        const shifted = transposeSingleChord(chordCore, semitones);
-        return `${prefix}${shifted}${suffix}`;
-      });
+    function transposeChordLinePreservingSpacing(line, steps) {
+      const regex = /([^\s]+)/g;
+      let result = '';
+      let lastSourceIdx = 0;
+      let match;
+
+      while ((match = regex.exec(line)) !== null) {
+        const tokenStart = match.index;
+        const rawTok = match[0];
+
+        const gap = Math.max(lastSourceIdx === 0 ? tokenStart : 1, tokenStart - result.length);
+        result += ' '.repeat(gap);
+
+        const coreMatch = rawTok.match(/^([|()[\].,:;*]*)([A-G](?:#|b)?[^|()[\].,:;*]*)([|()[\].,:;*]*)$/);
+        if (coreMatch) {
+          const [, prefix, core, suffix] = coreMatch;
+          const normCore = normalizeChordToken(core);
+          if (CHORD_TOKEN_REGEX.test(normCore)) {
+            result += prefix + transposeSingleChord(normCore, steps) + suffix;
+          } else {
+            result += rawTok;
+          }
+        } else {
+          result += rawTok;
+        }
+
+        lastSourceIdx = tokenStart + rawTok.length;
+      }
+
+      return result;
     }
 
     function extractYouTubeId(input) {
@@ -1329,32 +1277,6 @@ Pukaarataa Chalaa Huun Main
       updateDriveSyncUI();
     }
 
-    function renderSessionComments() {
-      const box = document.getElementById('session-comments-box');
-      const list = document.getElementById('session-comments-list');
-      if (!box || !list) return;
-
-      if (!state.visitorComments || state.visitorComments.length === 0) {
-        box.classList.add('hidden');
-        return;
-      }
-
-      box.classList.remove('hidden');
-      list.innerHTML = '';
-      state.visitorComments.forEach(c => {
-        const item = document.createElement('div');
-        item.className = 'p-2.5 rounded-xl bg-parchment-100 dark:bg-espresso-850 border border-stone-200 dark:border-espresso-700 text-xs';
-        item.innerHTML = `
-          <div class="flex items-center justify-between text-[11px] text-stone-500 dark:text-stone-400 mb-0.5">
-            <span class="font-semibold text-amber-700 dark:text-amber-400">${escapeHtml(c.topic)}</span>
-            <span>${escapeHtml(c.date)}</span>
-          </div>
-          <p class="text-stone-700 dark:text-parchment-100">${escapeHtml(c.message)}</p>
-        `;
-        list.appendChild(item);
-      });
-    }
-
     function setupEventListeners() {
       document.getElementById('toggle-sidebar-btn').addEventListener('click', () => {
         const sidebar = document.getElementById('library-sidebar');
@@ -1445,72 +1367,6 @@ Pukaarataa Chalaa Huun Main
           if (isAutoScrolling) stopAutoScroll();
         }, { passive: true });
       });
-
-      const commentModal = document.getElementById('comment-modal');
-      const openCommentModal = () => {
-        const song = getActiveSong();
-        document.getElementById('comment-song-topic').value = song ? song.title : 'Nomad Raga Songbook';
-        document.getElementById('comment-message-text').value = '';
-        renderSessionComments();
-        commentModal.classList.remove('hidden');
-        commentModal.classList.add('flex');
-      };
-      const closeCommentModal = () => {
-        commentModal.classList.add('hidden');
-        commentModal.classList.remove('flex');
-      };
-
-      document.getElementById('open-comment-btn').addEventListener('click', openCommentModal);
-      document.getElementById('footer-comment-btn').addEventListener('click', openCommentModal);
-      document.getElementById('close-comment-modal-btn').addEventListener('click', closeCommentModal);
-      document.getElementById('cancel-comment-btn').addEventListener('click', closeCommentModal);
-
-      const buildCommentEmailContent = () => {
-        const name = document.getElementById('comment-visitor-name').value.trim() || 'Songbook Visitor';
-        const visitorEmail = document.getElementById('comment-visitor-email').value.trim();
-        const topic = document.getElementById('comment-song-topic').value.trim() || 'Nomad Raga Songbook';
-        const msg = document.getElementById('comment-message-text').value.trim();
-        const subject = `[Nomad Raga Songbook] ${topic} — Note from ${name}`;
-        const emailLine = visitorEmail ? `Reply-To Email: ${visitorEmail}\n` : '';
-        const body = `Song / Topic: ${topic}\nFrom: ${name}\n${emailLine}\nComment:\n${msg}\n\n---\nSent via jam.nomadraga.live`;
-        return { name, visitorEmail, topic, msg, subject, body };
-      };
-
-      document.getElementById('copy-comment-email-btn').addEventListener('click', () => {
-        const { msg, subject, body } = buildCommentEmailContent();
-        if (!msg) {
-          showToast('Please write a comment first.', 'error');
-          return;
-        }
-        const ta = document.createElement('textarea');
-        ta.value = `To: ${FEEDBACK_EMAIL}\nSubject: ${subject}\n\n${body}`;
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand('copy');
-        ta.remove();
-        showToast('Comment & email address copied to clipboard!', 'success');
-      });
-
-      document.getElementById('send-comment-email-btn').addEventListener('click', () => {
-        const { topic, msg, subject, body } = buildCommentEmailContent();
-        if (!msg) {
-          showToast('Please enter your comment before sending.', 'error');
-          return;
-        }
-
-        state.visitorComments.unshift({
-          topic,
-          message: msg,
-          date: new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-        });
-        saveVisitorComments();
-        renderSessionComments();
-
-        const mailtoUrl = `mailto:${FEEDBACK_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-        window.location.href = mailtoUrl;
-        showToast(`Opening email to ${FEEDBACK_EMAIL}...`, 'success');
-        closeCommentModal();
-      });
     }
 
     window.addEventListener('DOMContentLoaded', () => {
@@ -1519,8 +1375,6 @@ Pukaarataa Chalaa Huun Main
         const savedTheme = localStorage.getItem(THEME_KEY);
         if (savedTheme) applyTheme(savedTheme);
       } catch (e) {}
-
-      loadVisitorComments();
 
       const loadedLocal = loadLibraryFromLocal();
       if (!loadedLocal || state.songs.length === 0) {
